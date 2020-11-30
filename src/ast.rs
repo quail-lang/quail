@@ -59,8 +59,14 @@ pub enum TermNode {
     Lam(String, Term),
     App(Term, Term),
     Let(String, Term, Term),
+    Match(Term, Vec<MatchArm>),
     NatLit(u64),
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MatchArm(pub Pattern, pub Term);
+
+pub type Pattern = Vec<String>;
 
 #[derive(Clone)]
 pub enum Value {

@@ -1,10 +1,12 @@
 PROGRAM := ITEM*
 ITEM := DEF
-DEF := def VAR = TERM
-TERM := TERMPART+
+DEF := def IDENT = TERM
+TERM := TERMPART+ | match TERM PAT*
 TERMPART := VAR | LAMBDA | LET | ( TERM )
-VAR := x, y, z, ...
+PAT := with IDENT+ => TERM
+IDENT := x, y, z, ...
+VAR := IDENT
 APP := TERM TERM
 LIT := 0, 1, ...
-LAMBDA := fn VAR => TERM
-LET := let VAR = TERM in TERM
+LAMBDA := fn IDENT => TERM
+LET := let IDENT = TERM in TERM

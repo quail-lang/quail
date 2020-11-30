@@ -94,6 +94,12 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
             let extended_ctx = ctx.extend(x, v_value);
             eval(body.clone(), extended_ctx, program)
         },
+        Match(t, match_arms) => {
+            let t_value = eval(t.clone(), ctx.clone(), program);
+            // TODO
+            let body = match_arms[0].1.clone();
+            eval(body, ctx, program)
+        },
         NatLit(n) => Value::Nat(*n),
     }
 }

@@ -13,6 +13,8 @@ pub enum Token {
     FatArrow,
     LeftParen,
     RightParen,
+    Match,
+    With,
 }
 
 
@@ -168,6 +170,8 @@ impl Tokenizer {
             ("let".to_string(), Token::Let),
             ("def".to_string(), Token::Def),
             ("in".to_string(), Token::In),
+            ("match".to_string(), Token::Match),
+            ("with".to_string(), Token::With),
         ].iter().cloned().collect();
         let first_char = self.input[self.cur];
         assert!(first_char.is_ascii_alphabetic());
@@ -312,26 +316,58 @@ impl Parser {
         }
     }
 
+    fn parse_pattern(&mut self) -> Result<ast::Pattern, ParseErr> {
+        Ok(self.consume_identifier_plus()?)
+    }
+
+    fn parse_match_arm(&mut self) -> Result<ast::MatchArm, ParseErr> {
+        self.consume_expect(Token::With)?;
+        let idents = self.parse_pattern()?;
+        self.consume_expect(Token::FatArrow)?;
+        let body = self.parse_term()?;
+        Ok(ast::MatchArm(idents, body))
+    }
+
+    fn parse_match_arm_plus(&mut self) -> Result<Vec<ast::MatchArm>, ParseErr> {
+        let mut match_arms = Vec::new();
+        match_arms.push(self.parse_match_arm()?);
+        while let Some(Token::With) = self.peek() {
+            match_arms.push(self.parse_match_arm()?);
+        }
+        Ok(match_arms)
+    }
+
+    fn parse_match(&mut self) -> Result<ast::Term, ParseErr> {
+        self.consume_expect(Token::Match)?;
+        let discriminee = self.parse_term()?;
+        let match_arms = self.parse_match_arm_plus()?;
+        Ok(ast::TermNode::Match(discriminee, match_arms).into())
+    }
+
     fn parse_term(&mut self) -> Result<ast::Term, ParseErr> {
         let mut term;
-        match self.parse_term_part()? {
-            None => {
-                return Err("Empty input".to_string());
-            },
-            Some(term_part) => {
-                term = term_part;
-            },
-        }
+        if self.peek() == Some(Token::Match) {
+            self.parse_match()
+        } else {
+            match self.parse_term_part()? {
+                None => {
+                    return Err("Empty input".to_string());
+                },
+                Some(term_part) => {
+                    term = term_part;
+                },
+            }
 
-        let mut term_parts: Vec<ast::Term> = Vec::new();
-        while let Some(term_part) = self.parse_term_part()? {
-            term_parts.push(term_part);
-        }
+            let mut term_parts: Vec<ast::Term> = Vec::new();
+            while let Some(term_part) = self.parse_term_part()? {
+                term_parts.push(term_part);
+            }
 
-        for term_part in term_parts.into_iter() {
-            term = ast::TermNode::App(term, term_part).into();
+            for term_part in term_parts.into_iter() {
+                term = ast::TermNode::App(term, term_part).into();
+            }
+            Ok(term)
         }
-        Ok(term)
     }
 
     fn parse_def(&mut self) -> Result<ast:: Item, ParseErr> {
