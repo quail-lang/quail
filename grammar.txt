@@ -2,7 +2,7 @@ PROGRAM := ITEM*
 ITEM := DEF
 DEF := def IDENT = TERM
 TERM := TERMPART+ | match TERM PAT*
-TERMPART := VAR | LAMBDA | LET | | HOLE | ( TERM )
+TERMPART := VAR | LAMBDA | LET | HOLE | ( TERM )
 PAT := with IDENT+ => TERM
 HOLE := ? | ?{...}
 IDENT := x, y, z, ...

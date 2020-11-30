@@ -17,7 +17,7 @@ pub enum Token {
     RightCurly,
     LeftSquare,
     RightSquare,
-    Question,
+    Hole(String),
     Match,
     With,
 }
@@ -104,7 +104,6 @@ impl Tokenizer {
             (']', Token::RightSquare),
             ('{', Token::LeftCurly),
             ('}', Token::RightCurly),
-            ('?', Token::Question),
         ].into_iter().collect();
 
         while let Some(head_char) = self.peek() {
@@ -120,6 +119,10 @@ impl Tokenizer {
             } else if head_char.is_ascii_alphabetic() {
                 let token = self.tokenize_identifier();
                 tokens.push(token);
+            } else if head_char == '#' {
+                self.consume_comment();
+            } else if head_char == '?' {
+                tokens.push(self.tokenize_hole());
             } else if head_char == '=' {
                 match self.peek_ahead(1) {
                     Some('>') => {
@@ -138,6 +141,44 @@ impl Tokenizer {
             }
         }
         tokens
+    }
+
+    fn consume_comment(&mut self) {
+        while let Some(consume_char) = self.consume() {
+            if consume_char == '\n' {
+                break
+            }
+        }
+    }
+
+    fn tokenize_hole(&mut self) -> Token {
+        assert_eq!(self.consume(), Some('?'));
+        if let Some('{') = self.peek() {
+            let mut level = 1;
+            let mut contents = String::new();
+            self.consume(); // Eat the '{'
+            while let Some(peek_char) = self.consume() {
+                if peek_char == '{' {
+                    level += 1;
+                } else if peek_char == '}' {
+                    level -= 1;
+                }
+
+                if level == 0 {
+                    break;
+                } else {
+                    contents.push(peek_char);
+                }
+            }
+
+            if level != 0 {
+                panic!("Mismatch curly braces.")
+            } else {
+                Token::Hole(contents)
+            }
+        } else {
+            Token::Hole("".to_string())
+        }
     }
 
     fn peek(&mut self) -> Option<char> {
@@ -302,32 +343,6 @@ impl Parser {
         Ok(term)
     }
 
-    fn parse_hole(&mut self) -> Result<Option<ast::Term>, ParseErr> {
-        self.consume_expect(Token::Question)?;
-        match self.peek() {
-            Some(Token::LeftCurly) => {
-                let mut level = 0;
-                while let Some(token) = self.consume() {
-                    if token == Token::LeftCurly {
-                        level += 1;
-                    } else if token == Token::RightCurly {
-                        level -= 1;
-                    }
-                    if level == 0 {
-                        break;
-                    }
-                }
-
-                if level != 0 {
-                    Err("Unclosed { when parsing a hole.".to_string())
-                } else {
-                    Ok(Some(ast::TermNode::Hole.into()))
-                }
-            }
-            _ => Ok(Some(ast::TermNode::Hole.into())),
-        }
-    }
-
     fn parse_term_part(&mut self) -> Result<Option<ast::Term>, ParseErr> {
         match self.peek() {
             Some(token) => match token {
@@ -352,7 +367,10 @@ impl Parser {
                     let body = self.parse_term()?;
                     Ok(Some(ast::TermNode::Let(bind_var, value, body).into()))
                 },
-                Token::Question => Ok(self.parse_hole()?),
+                Token::Hole(contents) => {
+                    self.consume();
+                    Ok(Some(ast::TermNode::Hole(contents).into()))
+                }
                 _ => Ok(None),
             },
             None => Ok(None),

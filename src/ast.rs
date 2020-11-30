@@ -60,7 +60,7 @@ pub enum TermNode {
     App(Term, Vec<Term>),
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
-    Hole,
+    Hole(String),
 }
 
 pub fn find_matching_arm(tag: &CtorTag, match_arms: &Vec<MatchArm>) -> MatchArm {

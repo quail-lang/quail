@@ -1,3 +1,5 @@
+# A program which prints out all of the prime numbers less than 16.
+
 def one = succ zero
 def two = succ one
 def three = succ two
@@ -31,6 +33,7 @@ def count_factors_iter = fun n k acc =>
                 with false => count_factors_iter n k' acc
         )
 
+# Counts the numer of factors for a given natural number.
 def count_factors = fun n => count_factors_iter n n zero
 
 def is_prime = fun n => eq (count_factors n) two
