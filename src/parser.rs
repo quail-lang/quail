@@ -1,6 +1,7 @@
 use crate::ast;
 use std::collections::HashMap;
 use ast::HoleId;
+use ast::HoleInfo;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
@@ -336,7 +337,7 @@ impl Parser {
                 },
                 Token::Hole(name, contents) => {
                     self.consume();
-                    Ok(Some(ast::TermNode::Hole(self.generate_hole_id(), name, contents).into()))
+                    Ok(Some(ast::TermNode::Hole(HoleInfo::new(self.generate_hole_id(), name, contents)).into()))
                 }
                 _ => Ok(None),
             },

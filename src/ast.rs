@@ -49,7 +49,24 @@ pub enum TermNode {
     App(Term, Vec<Term>),
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
-    Hole(HoleId, Option<String> /* name */, Option<String> /* contents */),
+    Hole(HoleInfo),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HoleInfo {
+    pub hole_id: HoleId,
+    pub name: Option<String>,
+    pub contents: Option<String>,
+}
+
+impl HoleInfo {
+    pub fn new(hole_id: HoleId, name: Option<String>, contents: Option<String>) -> Self {
+        HoleInfo {
+            hole_id,
+            name,
+            contents,
+        }
+    }
 }
 
 pub type HoleId = usize;

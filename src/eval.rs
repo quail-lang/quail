@@ -9,9 +9,11 @@ use crate::ast::Term;
 use crate::ast::Def;
 use crate::ast::Value;
 use crate::ast::Context;
+use crate::hole;
 use ast::HoleId;
 
 use rustyline::error::ReadlineError;
+
 use dirs;
 
 #[derive(Debug)]
@@ -104,67 +106,13 @@ impl Runtime {
         eval(main_body, prelude_ctx(), self);
     }
 
-    fn readline(&mut self) -> Result<String, ReadlineError> {
+    pub fn readline(&mut self) -> Result<String, ReadlineError> {
         let line = self.editor.readline("> ")?;
         self.editor.add_history_entry(line.as_str());
         self.editor.save_history(&self.readline_file)?;
         Ok(line)
     }
 
-    fn fill_hole(&mut self, hole_id: HoleId, name: &Option<String>, contents: &Option<String>, ctx: Context) -> Value {
-        match self.holes.get_mut(&hole_id) {
-            Some(value) => value.clone(),
-            None => {
-                match name {
-                    None => {
-                        println!("Encountered hole: #{}", hole_id);
-                        println!("");
-                    }
-                    Some(name_string) => {
-                        println!("Encountered hole: {}", name_string);
-                        println!("");
-                    }
-                }
-
-                if let Some(contents_string) = contents {
-                    println!("    Note: {:?}", contents_string);
-                    println!("");
-                }
-
-                println!("    Bindings:");
-                for (name, value) in ctx.bindings().into_iter() {
-                    println!("        {} = {:?}", name, &value);
-                }
-
-                println!("");
-                println!("    Globals:");
-                for definition in self.definitions.iter() {
-                    let ast::Def(name, _) = definition;
-                    println!("        {}", &name);
-                }
-
-                println!("");
-
-                loop {
-                    match self.readline() {
-                        Ok(term_text) => {
-                            match parser::parse_term(term_text) {
-                                Ok(term) => {
-                                    return eval(term, ctx, self);
-                                }
-                                Err(e) => println!("There was an error {:?}", e),
-                            }
-                        },
-                        Err(ReadlineError::Interrupted) => (),
-                        Err(ReadlineError::Eof) => std::process::exit(1),
-                        Err(err) => {
-                            panic!("Error: {:?}", err);
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {
@@ -337,7 +285,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(hole_id, name, contents) => runtime.fill_hole(*hole_id, name, contents, ctx),
+        Hole(hole_info) => hole::fill(runtime, hole_info, ctx),
     }
 }
 
