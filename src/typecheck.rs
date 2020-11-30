@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use super::ast::Term;
 use super::ast::TermNode;
-use crate::ast::CtorTag;
+use crate::ast::Tag;
 use crate::ast::MatchArm;
 use crate::builtins::TypeDef;
 
@@ -123,9 +123,9 @@ pub fn check_type_match(
     inductive_typedefs: &HashMap<String, TypeDef>,
     typ: Type,
 ) -> Result<(), TypeErr> {
-    let match_tags: Vec<CtorTag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
+    let match_tags: Vec<Tag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
     // TODO: handle bottom type
-    if let Some(first_ctor_tag) = &match_tags.iter().cloned().collect::<Vec<CtorTag>>().get(0) {
+    if let Some(first_ctor_tag) = &match_tags.iter().cloned().collect::<Vec<Tag>>().get(0) {
         match lookup_typedef_by_ctor_tag(first_ctor_tag, inductive_typedefs) {
             None => Err(format!("Unknown ctor {:?}", first_ctor_tag)),
             Some(inductive_typedef) => {
@@ -154,7 +154,7 @@ pub fn check_type_match(
     }
 }
 
-fn analyze_coverage(typedef_tags: &Vec<CtorTag>, match_tags: &Vec<CtorTag>) -> Result<(), TypeErr> {
+fn analyze_coverage(typedef_tags: &Vec<Tag>, match_tags: &Vec<Tag>) -> Result<(), TypeErr> {
     let match_tags_set: HashSet<_> = match_tags.iter().cloned().collect();
     let typedef_tags_set: HashSet<_> = typedef_tags.iter().cloned().collect();
 
@@ -163,7 +163,7 @@ fn analyze_coverage(typedef_tags: &Vec<CtorTag>, match_tags: &Vec<CtorTag>) -> R
 
     let mut sorted_match_tags = match_tags.clone();
     sorted_match_tags.sort();
-    let mut duplicate_tags: HashSet<CtorTag> = HashSet::new();
+    let mut duplicate_tags: HashSet<Tag> = HashSet::new();
     let match_tag_with_next: Vec<_> = sorted_match_tags
         .iter()
         .zip(sorted_match_tags[1..].iter())
@@ -214,9 +214,9 @@ fn check_type_match_arm(
     }
 }
 
-fn lookup_typedef_by_ctor_tag<'a>(ctor_tag: &CtorTag, inductive_typedefs: &'a HashMap<String, TypeDef>) -> Option<&'a TypeDef> {
+fn lookup_typedef_by_ctor_tag<'a>(ctor_tag: &Tag, inductive_typedefs: &'a HashMap<String, TypeDef>) -> Option<&'a TypeDef> {
     for (_typename, inductive_typedef) in inductive_typedefs.iter() {
-        let ctor_tags: Vec<CtorTag> = inductive_typedef.ctor_types.keys().cloned().collect();
+        let ctor_tags: Vec<Tag> = inductive_typedef.ctor_types.keys().cloned().collect();
         if ctor_tags.contains(&ctor_tag) {
             return Some(inductive_typedef);
         }

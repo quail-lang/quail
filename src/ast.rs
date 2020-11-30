@@ -48,13 +48,13 @@ pub type Pattern = Vec<String>;
 
 #[derive(Clone)]
 pub enum Value {
-    Ctor(CtorTag, Vec<Value>),
+    Ctor(Tag, Vec<Value>),
     Fun(String, Term, Context),
     Prim(rc::Rc<Box<Fn(Vec<Value>) -> Value>>),
     Str(String),
 }
 
-pub type CtorTag = String;
+pub type Tag = String;
 
 #[derive(Debug)]
 struct ContextNode(Vec<(String, Value)>);
@@ -141,7 +141,7 @@ impl Context {
     }
 }
 
-pub fn find_matching_arm(tag: &CtorTag, match_arms: &[MatchArm]) -> MatchArm {
+pub fn find_matching_arm(tag: &Tag, match_arms: &[MatchArm]) -> MatchArm {
     for match_arm in match_arms {
         let MatchArm(pat, _body) = match_arm;
         if pat[0] == *tag {

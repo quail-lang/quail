@@ -8,7 +8,7 @@ use ast::Context;
 use crate::typecheck::TypeNode;
 use crate::typecheck::TypeContext;
 use crate::typecheck::Type;
-use crate::ast::CtorTag;
+use crate::ast::Tag;
 
 
 #[derive(Debug, Clone)]
@@ -21,11 +21,11 @@ pub enum Flavor {
 pub struct TypeDef {
     pub name: String,
     pub flavor: Flavor,
-    pub ctor_types: HashMap<CtorTag, Type>,
+    pub ctor_types: HashMap<Tag, Type>,
 }
 
 impl TypeDef {
-    pub fn new(name: &str, flavor: Flavor, ctor_signatures: &[(CtorTag, &[Type])]) -> Self {
+    pub fn new(name: &str, flavor: Flavor, ctor_signatures: &[(Tag, &[Type])]) -> Self {
         let mut ctor_types = HashMap::new();
         for (tag, typ) in ctor_signatures.into_iter().map(|(tag, sig)| (tag, ctor_type_from_signature(&name, &sig))) {
             ctor_types.insert(tag.to_string(), typ);
@@ -43,7 +43,7 @@ impl TypeDef {
     }
 
     pub fn ctor_context(&self) -> Context {
-        let ctors: Vec<&CtorTag> = self.ctor_types.keys().collect();
+        let ctors: Vec<&Tag> = self.ctor_types.keys().collect();
         let mut ctx = Context::empty();
         for tag in ctors {
             ctx = ctx.extend(tag, Value::Ctor(tag.to_string(), vec![]));
@@ -52,7 +52,7 @@ impl TypeDef {
     }
 
     pub fn ctor_type_context(&self) -> TypeContext {
-        let ctor_types: Vec<(&CtorTag, &Type)> = self.ctor_types.iter().collect();
+        let ctor_types: Vec<(&Tag, &Type)> = self.ctor_types.iter().collect();
         let mut ctx = TypeContext::empty();
         for (tag, typ) in ctor_types {
             ctx = ctx.extend(tag, typ.clone())
@@ -60,7 +60,7 @@ impl TypeDef {
         ctx
     }
 
-    pub fn ctor_tags(&self) -> Vec<CtorTag> {
+    pub fn ctor_tags(&self) -> Vec<Tag> {
         self.ctor_types.keys().cloned().collect()
     }
 }
