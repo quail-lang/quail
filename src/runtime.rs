@@ -19,6 +19,8 @@ use ast::MatchArm;
 use builtins::TypeDef;
 use crate::typecontext::TypeContext;
 
+use std::path::{Path, PathBuf};
+
 ///
 /// Runtime is the global store for all of the information loaded into the program.
 ///
@@ -27,6 +29,8 @@ pub struct Runtime {
     /// Keeps track of which modules have been loaded into the Runtime
     /// already. This is currently being used to break cyclic imports.
     pub imports: Vec<String>,
+
+    pub import_base: PathBuf,
 
     /// holes - keeps track of what values have been supplied for each hole.
     pub holes: HashMap<HoleId, Value>,
@@ -70,6 +74,12 @@ impl Runtime {
     /// Creates a new Runtime with no modules loaded. The inductive typedefs are defined, as well as the builtins.
     /// Sets up the history file, creating it if it doesn't exist.
     pub fn new() -> Self {
+        let import_base_string = std::env::var("QUAIL_IMPORT_BASE").unwrap_or(".".to_string());
+        let import_base = PathBuf::from(&import_base_string).canonicalize().unwrap();
+        if !import_base.is_dir() {
+            panic!("QUAIL_IMPORT_BASE is {} but that directory does not exist.", import_base_string);
+        }
+
         let readline_file = dirs::config_dir()
             .expect("User does not have a home directory??")
             .join("quail").join("history");
@@ -99,6 +109,7 @@ impl Runtime {
 
         Runtime {
             imports: vec![],
+            import_base,
             holes: HashMap::new(),
             readline_file: readline_file.to_string_lossy().to_string(),
             editor,
@@ -120,17 +131,13 @@ impl Runtime {
     pub fn import(&mut self, name: &str) -> Result<(), RuntimeError> {
         let mut import_filename = name.to_string();
         import_filename.push_str(".ql");
-        let import_filename = &std::path::Path::new(&import_filename);
-
-        match std::env::current_dir() {
-            Ok(basedir) => self.load_module(import_filename, &basedir, false),
-            Err(err) => Err(err.into()),
-        }
+        let import_filename = &Path::new(&import_filename);
+        self.load_module(import_filename, &self.import_base.clone(), false)
     }
 
-    pub fn load(&mut self, filepath: impl AsRef<std::path::Path>) -> Result<(), RuntimeError> {
-        let basedir = std::path::Path::new(filepath.as_ref().parent().expect("Invalid path"));
-        let filename = std::path::Path::new(filepath.as_ref().file_name().expect("Invalid path"));
+    pub fn load(&mut self, filepath: impl AsRef<Path>) -> Result<(), RuntimeError> {
+        let basedir = Path::new(filepath.as_ref().parent().expect("Invalid path"));
+        let filename = Path::new(filepath.as_ref().file_name().expect("Invalid path"));
         self.load_module(filename, basedir, true)
     }
 
@@ -148,8 +155,8 @@ impl Runtime {
     /// and then adding those definitions to the Runtime.
     fn load_module(
         &mut self,
-        filename: &std::path::Path,
-        basedir: &std::path::Path,
+        filename: &Path,
+        basedir: &Path,
         is_main: bool,
     ) -> Result<(), RuntimeError> {
         if self.imports.contains(&filename.to_string_lossy().to_string()) {
@@ -171,7 +178,7 @@ impl Runtime {
 
             let mut import_filename = name.to_string();
             import_filename.push_str(".ql");
-            let import_filename = &std::path::Path::new(&import_filename);
+            let import_filename = &Path::new(&import_filename);
 
             self.load_module(import_filename, basedir, false)?;
         }
