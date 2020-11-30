@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 rustyline = "4.1.0"
 dirs = "2.0.1"
+structopt = "0.2"
