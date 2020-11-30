@@ -83,34 +83,26 @@ impl Tokenizer {
     }
 
     fn single_character_token(&mut self) -> Option<Token> {
-        let loc = self.loc.clone();
         let head_char = self.peek()?;
 
-        if head_char == '(' {
-            self.consume();
-            Some(Token::LeftParen(loc))
-        } else if head_char == ')' {
-            self.consume();
-            Some(Token::RightParen(loc))
-        } else if head_char == '{' {
-            self.consume();
-            Some(Token::LeftCurly(loc))
-        } else if head_char == '}' {
-            self.consume();
-            Some(Token::RightCurly(loc))
-        } else if head_char == ':' {
-            self.consume();
-            Some(Token::Colon(loc))
-        } else if head_char == '$' {
-            self.consume();
-            Some(Token::Dollar(loc))
-        } else if head_char == '=' {
-            self.consume();
-            Some(Token::Equals(self.loc.clone()))
-        } else {
-            None
+        macro_rules! single_char_token {
+            ($character:literal, $tok:ident) => {
+                if head_char == $character {
+                    self.consume();
+                    return Some(Token::$tok(self.loc.clone()));
+                }
+            }
         }
 
+        single_char_token!('(', LeftParen);
+        single_char_token!(')', RightParen);
+        single_char_token!('{', LeftCurly);
+        single_char_token!('}', RightCurly);
+        single_char_token!(':', Colon);
+        single_char_token!('$', Dollar);
+        single_char_token!('=', Equals);
+
+        return None;
     }
 
     fn token(&mut self) -> Result<Option<Token>, TokenizeErr> {
