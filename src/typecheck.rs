@@ -71,7 +71,7 @@ pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
                     if x_typ == typ {
                         Ok(())
                     } else {
-                        Err(format!("Type of {} does not match context", x))
+                        Err(format!("Term {} does not have type {:?} in context: {:?}", x, &typ, &ctx))
                     }
                 },
                 None => Err(format!("{} does not appear in context.", x)),

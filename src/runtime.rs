@@ -119,7 +119,6 @@ impl Runtime {
         }
 
         for definition in module.definitions.iter() {
-            println!("{:?}", &definition);
             let Def(name, typ, body) = definition;
             if is_main || name != "main" {
                 let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(name, typ.clone());
@@ -130,7 +129,7 @@ impl Runtime {
                 let body_value = self.eval(body.clone(), Context::empty());
                 self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
 
-                println!("{} : {:?}", &name, &typ);
+                println!("{} : ?", &name);
             }
         }
     }
