@@ -17,6 +17,7 @@ use ast::Context;
 use ast::HoleId;
 use ast::Import;
 use ast::MatchArm;
+use builtins::InductiveTypeDef;
 use typecheck::TypeContext;
 
 #[derive(Debug)]
@@ -26,6 +27,9 @@ pub struct Runtime {
     pub readline_file: String,
     pub editor: rustyline::Editor<()>,
     pub number_of_holes: u64,
+
+    pub inductive_typedefs: Vec<InductiveTypeDef>,
+
     pub definition_ctx: Context,
     pub definition_type_ctx: TypeContext,
 
@@ -51,8 +55,12 @@ impl Runtime {
             readline_file: readline_file.to_string_lossy().to_string(),
             editor: rustyline::Editor::new(),
             number_of_holes: 0,
+
+            inductive_typedefs: builtins::builtin_inductive_typedefs(),
+
             definition_ctx: Context::empty(),
             builtin_ctx: builtins::builtins_ctx(),
+
             definition_type_ctx: TypeContext::empty(),
             builtin_type_ctx: builtins::builtins_type_ctx(),
         };

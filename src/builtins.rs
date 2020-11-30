@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::rc;
 
 use crate::ast;
@@ -6,6 +7,77 @@ use ast::Value;
 use ast::Context;
 use crate::typecheck::TypeNode;
 use crate::typecheck::TypeContext;
+use crate::typecheck::Type;
+use crate::ast::CtorTag;
+
+#[derive(Debug)]
+pub struct InductiveTypeDef {
+    name: String,
+    ctor_types: HashMap<CtorTag, Type>,
+}
+
+impl InductiveTypeDef {
+    pub fn new(name: &str, ctor_signatures: &[(CtorTag, &[Type])]) -> Self {
+        let mut ctor_types = HashMap::new();
+        for (tag, typ) in ctor_signatures.into_iter().map(|(tag, sig)| (tag, ctor_type_from_signature(&name, &sig))) {
+            ctor_types.insert(tag.to_string(), typ);
+        }
+
+        InductiveTypeDef {
+            name: name.to_string(),
+            ctor_types,
+        }
+    }
+
+    pub fn as_type(&self) -> Type {
+        TypeNode::Atom(self.name.clone()).into()
+    }
+
+    pub fn ctor_context(&self) -> TypeContext {
+        let ctor_types: Vec<(&CtorTag, &Type)> = self.ctor_types.iter().collect();
+        let mut ctx = TypeContext::empty();
+        for (tag, typ) in ctor_types {
+            ctx = ctx.extend(tag, typ.clone())
+        }
+        ctx
+    }
+
+}
+
+fn ctor_type_from_signature(name: &str, ctor_signature: &[Type]) -> Type {
+    let mut typ: Type = TypeNode::Atom(name.to_string()).into();
+    for sig_typ in ctor_signature.iter().rev() {
+        typ = TypeNode::Arrow(sig_typ.clone(), typ).into();
+    }
+    typ
+}
+
+pub fn builtin_inductive_typedefs() -> Vec<InductiveTypeDef> {
+    let nat_type = InductiveTypeDef::new(
+        "Nat",
+        &[
+            ("zero".to_string(), &[]),
+            ("succ".to_string(), &[TypeNode::Atom("Nat".to_string()).into()]),
+        ]
+    );
+
+    let bool_type = InductiveTypeDef::new(
+        "Bool",
+        &[
+            ("true".to_string(), &[]),
+            ("false".to_string(), &[]),
+        ],
+    );
+
+    let unit_type = InductiveTypeDef::new(
+        "Unit",
+        &[
+            ("unit".to_string(), &[]),
+        ],
+    );
+
+    vec![nat_type, bool_type, unit_type]
+}
 
 pub fn builtins_ctx() -> Context {
     Context::empty()
