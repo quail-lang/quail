@@ -15,8 +15,8 @@ fn main() {
     let mut program_text = String::new();
     fs::File::open(filename).expect("File doesn't exist").read_to_string(&mut program_text).expect("Couldn't read from file");
 
-    match parser::parse_program(program_text) {
-        Ok(program) => eval::exec(&program),
+    match parser::parse_module(program_text) {
+        Ok(module) => eval::exec(&module),
         Err(e) => eprintln!("There was an error {:?}", e),
     }
 }

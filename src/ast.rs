@@ -2,14 +2,14 @@ use std::rc;
 use std::fmt;
 
 #[derive(Clone, Debug)]
-pub struct Program {
+pub struct Module {
     pub definitions: Vec<Def>,
     pub imports: Vec<Import>,
 }
 
-impl Program {
+impl Module {
     pub fn new(definitions: Vec<Def>, imports: Vec<Import>) -> Self {
-        Program { definitions, imports }
+        Module { definitions, imports }
     }
 
     pub fn definition(&self, name: impl Into<String>) -> Option<&Def> {

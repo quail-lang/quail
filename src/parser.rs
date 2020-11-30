@@ -401,7 +401,7 @@ impl Parser {
         Ok(ast::Import(import_name))
     }
 
-    fn parse_program(&mut self) -> Result<ast::Program, ParseErr> {
+    fn parse_module(&mut self) -> Result<ast::Module, ParseErr> {
         let mut definitions = Vec::new();
         let mut imports = Vec::new();
 
@@ -416,7 +416,7 @@ impl Parser {
                 return Err(format!("Expected an item declaration, found {:?}", token));
             }
         }
-        Ok(ast::Program::new(definitions, imports))
+        Ok(ast::Module::new(definitions, imports))
     }
 }
 
@@ -429,13 +429,13 @@ pub fn parse_term(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
     parser.parse_term()
 }
 
-pub fn parse_program(input: impl Into<String>) -> Result<ast::Program, ParseErr> {
+pub fn parse_module(input: impl Into<String>) -> Result<ast::Module, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
 
     let mut parser = Parser::new(tokens);
 
-    parser.parse_program()
+    parser.parse_module()
 }
 
 #[cfg(test)]

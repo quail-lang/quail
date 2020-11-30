@@ -3,16 +3,16 @@ use std::rc;
 use crate::parser;
 
 use crate::ast;
-use crate::ast::Program;
+use crate::ast::Module;
 use crate::ast::Term;
 
 use crate::ast::Value;
 use crate::ast::Context;
 use ast::HoleId;
 
-pub fn exec(program: &Program) {
-    let ast::Def(_, main_body) = program.definition("main").expect("There should be a main in your program").clone();
-    eval(main_body, prelude_ctx(), program);
+pub fn exec(module: &Module) {
+    let ast::Def(_, main_body) = module.definition("main").expect("There should be a main in your module").clone();
+    eval(main_body, prelude_ctx(), module);
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {
@@ -64,15 +64,15 @@ pub fn prelude_ctx() -> Context {
         .extend(&"pair".into(), Value::Prim(rc::Rc::new(Box::new(pair_prim))))
 }
 
-fn apply(func: Value, args: Vec<Value>, program: &Program) -> Value {
+fn apply(func: Value, args: Vec<Value>, module: &Module) -> Value {
     match &func {
         Value::Fun(x, body, local_ctx) => {
             match args.clone().split_first() {
                 None => func,
                 Some((v, vs_remaining)) => {
                     let new_ctx = local_ctx.extend(&x, v.clone());
-                    let new_func = eval(body.clone(), new_ctx, program);
-                    apply(new_func, vs_remaining.to_vec(), program)
+                    let new_func = eval(body.clone(), new_ctx, module);
+                    apply(new_func, vs_remaining.to_vec(), module)
                 },
             }
         },
@@ -87,15 +87,15 @@ fn apply(func: Value, args: Vec<Value>, program: &Program) -> Value {
     }
 }
 
-pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
+pub fn eval(t: Term, ctx: Context, module: &Module) -> Value {
     use crate::ast::TermNode::*;
     match t.as_ref() {
         Var(x) => {
             match ctx.lookup(x) {
                 Some(v) => v,
                 None => {
-                    let ast::Def(_, body) = program.definition(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
-                    eval(body.clone(), ctx, program)
+                    let ast::Def(_, body) = module.definition(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
+                    eval(body.clone(), ctx, module)
                 },
             }
         },
@@ -103,17 +103,17 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
             Value::Fun(x.clone(), body.clone(), ctx.clone())
         },
         App(f, vs) => {
-            let f_value = eval(f.clone(), ctx.clone(), program);
-            let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), program)).collect();
-            apply(f_value, vs_values, program)
+            let f_value = eval(f.clone(), ctx.clone(), module);
+            let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), module)).collect();
+            apply(f_value, vs_values, module)
         },
         Let(x, v, body) => {
-            let v_value = eval(v.clone(), ctx.clone(), program);
+            let v_value = eval(v.clone(), ctx.clone(), module);
             let extended_ctx = ctx.extend(x, v_value);
-            eval(body.clone(), extended_ctx, program)
+            eval(body.clone(), extended_ctx, module)
         },
         Match(t, match_arms) => {
-            let t_value = eval(t.clone(), ctx.clone(), program);
+            let t_value = eval(t.clone(), ctx.clone(), module);
             match t_value {
                 Value::Ctor(tag, contents) => {
                     let ast::MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
@@ -123,16 +123,16 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
                     let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
 
                     let extended_ctx = ctx.extend_many(&bindings);
-                    eval(body, extended_ctx, program)
+                    eval(body, extended_ctx, module)
                 },
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(hole_id, contents) => eval_hole(*hole_id, ctx, program, contents),
+        Hole(hole_id, contents) => eval_hole(*hole_id, ctx, module, contents),
     }
 }
 
-fn eval_hole(hole_id: HoleId, ctx: Context, program: &Program, contents: &str) -> Value {
+fn eval_hole(hole_id: HoleId, ctx: Context, module: &Module, contents: &str) -> Value {
     println!("Encountered hole #{}", hole_id);
     println!("");
     if contents != "" {
@@ -147,21 +147,21 @@ fn eval_hole(hole_id: HoleId, ctx: Context, program: &Program, contents: &str) -
 
     println!("");
     println!("    Globals:");
-    for definition in program.definitions.iter() {
+    for definition in module.definitions.iter() {
         let ast::Def(name, _) = definition;
         println!("        {}", &name);
     }
 
     println!("");
 
-    let mut program_text = String::new();
+    let mut term_text = String::new();
     print!("> ");
     use std::io::Write;
     std::io::stdout().flush().expect("Couldn't flush stdout??");
-    std::io::stdin().read_line(&mut program_text).expect("Couldn't read from stdin??");
+    std::io::stdin().read_line(&mut term_text).expect("Couldn't read from stdin??");
 
-    match parser::parse_term(program_text) {
-        Ok(term) => eval(term, ctx, program),
+    match parser::parse_term(term_text) {
+        Ok(term) => eval(term, ctx, module),
         Err(e) => panic!(format!("There was an error {:?}", e)),
     }
 }
