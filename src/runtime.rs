@@ -401,7 +401,7 @@ impl fmt::Debug for Value {
                 }
                 Ok(())
             },
-            Value::Str(s) => write!(f, "{}", s),
+            Value::Str(s) => write!(f, "{:?}", s),
             Value::Fun(_, _, _) => write!(f, "<fun>"),
             Value::Prim(_) => write!(f, "<prim>"),
             Value::Thunk(_, _) => write!(f, "<thunk>"),
