@@ -18,6 +18,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
             introduce_hole(hole_info);
             show_bindings(&ctx);
             show_globals(runtime);
+            show_holes(runtime, hole_info.hole_id);
 
             loop {
                 match runtime.readline() {
@@ -105,6 +106,24 @@ fn show_globals(runtime: &Runtime) {
     for definition in runtime.definitions.iter() {
         let Def(name, _) = definition;
         println!("        {}", &name);
+    }
+    println!();
+}
+
+fn show_holes(runtime: &Runtime, active_hole_id: HoleId) {
+    println!("    Holes:");
+    for hole_id in 0..runtime.number_of_holes {
+        let hole_id = hole_id as HoleId;
+        let leader = if hole_id == active_hole_id {
+            "  > "
+        } else {
+            "    "
+        };
+
+        match runtime.hole_value(hole_id) {
+            Some(value) => println!("    {}#{} = {:?}", leader, hole_id, value),
+            None => println!("    {}#{}", leader, hole_id),
+        }
     }
     println!();
 }
