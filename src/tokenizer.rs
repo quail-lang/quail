@@ -68,20 +68,21 @@ impl Tokenizer {
             }
         }
 
+        let loc = self.loc.clone();
         match self.peek() {
             Some(head_char) => {
                 if head_char == '(' {
                     self.consume();
-                    Ok(Some(Token::LeftParen(self.loc.clone())))
+                    Ok(Some(Token::LeftParen(loc)))
                 } else if head_char == ')' {
                     self.consume();
-                    Ok(Some(Token::RightParen(self.loc.clone())))
+                    Ok(Some(Token::RightParen(loc)))
                 } else if head_char == '{' {
                     self.consume();
-                    Ok(Some(Token::LeftCurly(self.loc.clone())))
+                    Ok(Some(Token::LeftCurly(loc)))
                 } else if head_char == '}' {
                     self.consume();
-                    Ok(Some(Token::RightCurly(self.loc.clone())))
+                    Ok(Some(Token::RightCurly(loc)))
                 } else if head_char.is_ascii_alphabetic() {
                     let token = self.tokenize_identifier()?;
                     Ok(Some(token))
@@ -92,13 +93,13 @@ impl Tokenizer {
                         Some('>') => {
                             self.consume();
                             self.consume();
-                            Ok(Some(Token::FatArrow(self.loc.clone())))
+                            Ok(Some(Token::FatArrow(loc)))
                         },
                         Some(_) => {
                             self.consume();
-                            Ok(Some(Token::Equals(self.loc.clone())))
+                            Ok(Some(Token::Equals(loc)))
                         }
-                        None => Ok(Some(Token::Equals(self.loc.clone()))),
+                        None => Ok(Some(Token::Equals(loc))),
                     }
                 } else {
                     Err(format!("Unexpected character while parsing: {}", head_char))
@@ -109,13 +110,14 @@ impl Tokenizer {
     }
 
     fn tokenize_hole(&mut self) -> Result<Token, TokenizeErr> {
+        let loc = self.loc.clone();
         assert_eq!(self.consume(), Some('?'));
 
         let peek_char : char;
         let name: Option<String>;
 
         match self.peek() {
-            None => return Ok(Token::Hole(self.loc.clone(), None, None)),
+            None => return Ok(Token::Hole(loc, None, None)),
             Some(chr) => peek_char = chr,
         }
 
@@ -151,10 +153,10 @@ impl Tokenizer {
             if level != 0 {
                 Err("Mismatch curly braces.".to_string())
             } else {
-                Ok(Token::Hole(self.loc.clone(), name, Some(contents)))
+                Ok(Token::Hole(loc, name, Some(contents)))
             }
         } else {
-            Ok(Token::Hole(self.loc.clone(), name, None))
+            Ok(Token::Hole(loc, name, None))
         }
     }
 
@@ -168,6 +170,8 @@ impl Tokenizer {
             ("with".to_string(), Token::With(self.loc.clone())),
             ("import".to_string(), Token::Import(self.loc.clone())),
         ].iter().cloned().collect();
+
+        let loc = self.loc.clone();
 
         let mut first_char = '\0';
         match self.peek() {
@@ -202,7 +206,7 @@ impl Tokenizer {
 
         match keywords.get(&token_string) {
             Some(token) => Ok(token.clone()),
-            None => Ok(Token::Ident(self.loc.clone(), token_string))
+            None => Ok(Token::Ident(loc, token_string))
         }
     }
 
