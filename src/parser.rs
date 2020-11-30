@@ -335,10 +335,6 @@ impl Parser {
                     self.consume();
                     Ok(Some(ast::TermNode::Var(name).into()))
                 },
-                Token::Lit(value) => {
-                    self.consume();
-                    Ok(Some(ast::TermNode::NatLit(value).into()))
-                },
                 Token::Lambda => Ok(Some(self.parse_lambda()?)),
                 Token::LeftParen => {
                     self.consume_expect(Token::LeftParen)?;

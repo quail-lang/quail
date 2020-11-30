@@ -16,7 +16,6 @@ pub fn exec(program: &Program) {
 
 fn succ_prim(v: Value) -> Value {
     match v.clone() {
-        Value::Nat(n) => Value::Nat(n + 1),
         Value::Ctor(tag, _) => {
             if tag == "zero" {
                 Value::Ctor("succ".into(), vec![Value::Ctor("zero".into(), vec![])])
@@ -30,44 +29,14 @@ fn succ_prim(v: Value) -> Value {
     }
 }
 
-fn pred_prim(v: Value) -> Value {
-    match v {
-        Value::Nat(0) => Value::Nat(0),
-        Value::Nat(n) => Value::Nat(n - 1),
-        other => panic!(format!("Couldn't pred {:?}", other)),
-    }
-}
-
 fn println_prim(v: Value) -> Value {
     println!("{:?}", v);
-    Value::Nat(0)
-}
-
-fn ifzero_prim(v: Value) -> Value {
-    if let Value::Nat(n) = v {
-        if n == 0 {
-            Value::Fun(
-                "x".to_string(),
-               TermNode::Lam("y".into(), TermNode::Var("x".into()).into()).into(),
-               Context::empty(),
-            )
-        } else {
-            Value::Fun(
-                "x".to_string(),
-                TermNode::Lam("y".into(), TermNode::Var("y".into()).into()).into(),
-                Context::empty(),
-            )
-        }
-    } else {
-        panic!(format!("Expected a number, but got {:?}", v));
-    }
+    v
 }
 
 pub fn prelude_ctx() -> Context {
     Context::empty()
-        .extend(&"pred".into(), Value::Prim(rc::Rc::new(Box::new(pred_prim))))
         .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))))
-        .extend(&"ifzero".into(), Value::Prim(rc::Rc::new(Box::new(ifzero_prim))))
         .extend(&"zero".into(), Value::Ctor("zero".into(), Vec::new()))
         .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
         .extend(&"true".into(), Value::Ctor("true".into(), Vec::new()))
@@ -125,7 +94,6 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
             }
         },
         Hole => eval_hole(ctx, program),
-        NatLit(n) => Value::Nat(*n),
     }
 }
 

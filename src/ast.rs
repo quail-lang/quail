@@ -61,7 +61,6 @@ pub enum TermNode {
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
     Hole,
-    NatLit(u64),
 }
 
 pub fn find_matching_arm(tag: &CtorTag, match_arms: &Vec<MatchArm>) -> MatchArm {
@@ -81,7 +80,6 @@ pub type Pattern = Vec<String>;
 
 #[derive(Clone)]
 pub enum Value {
-    Nat(u64),
     Ctor(CtorTag, Vec<Value>),
     Fun(String, Term, Context),
     Prim(rc::Rc<Box<Fn(Value) -> Value>>),
@@ -99,7 +97,6 @@ impl fmt::Debug for Value {
                 }
                 Ok(())
             },
-            Value::Nat(n) => write!(f, "{}", n),
             Value::Fun(_, _, _) => write!(f, "<fun>"),
             Value::Prim(_) => write!(f, "<prim>"),
         }
