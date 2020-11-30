@@ -9,16 +9,18 @@ use crate::ast;
 use crate::hole;
 
 use ast::Term;
+use ast::TermNode;
 use ast::Def;
 use ast::Value;
 use ast::Context;
 use ast::HoleId;
-
+use ast::Import;
+use ast::MatchArm;
 
 #[derive(Debug)]
 pub struct Runtime {
     pub imports: Vec<String>,
-    pub definitions: Vec<ast::Def>,
+    pub definitions: Vec<Def>,
     pub holes: HashMap<HoleId, Value>,
     pub readline_file: String,
     pub editor: rustyline::Editor<()>,
@@ -81,7 +83,7 @@ impl Runtime {
             self.definitions.extend(module.definitions.into_iter().filter(|Def(name, _)| name != "main"));
         }
         for import in module.imports {
-            let ast::Import(name) = import;
+            let Import(name) = import;
 
             let mut import_filename = name.to_string();
             import_filename.push_str(".ql");
@@ -102,7 +104,7 @@ impl Runtime {
     }
 
     pub fn exec(&mut self) {
-        let ast::Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
+        let Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
         eval(main_body, Context::empty(), self);
     }
 
@@ -199,14 +201,14 @@ fn show_prim(vs: Vec<Value>) -> Value {
     match &v {
         Value::Ctor(tag, _) => {
             if tag == "zero" || tag == "succ" {
-                ast::Value::Str(format!("{}", nat_to_u64(v)))
+                Value::Str(format!("{}", nat_to_u64(v)))
             } else if tag == "nil" || tag == "cons" {
                 let val_vec = list_to_vec(v.clone());
                 let str_value_vec: Vec<Value> = val_vec.into_iter().map(|v| show_prim(vec![v])).collect();
                 let s: String = format!("{:?}", str_value_vec);
-                ast::Value::Str(s)
+                Value::Str(s)
             } else {
-                ast::Value::Str(format!("{:?}", v))
+                Value::Str(format!("{:?}", v))
             }
         }
         _ => panic!("Can't show this {:?}", &v),
@@ -252,11 +254,10 @@ fn apply(func: Value, args: Vec<Value>, runtime: &mut Runtime) -> Value {
 }
 
 pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
-    use crate::ast::TermNode::*;
     match t.as_ref() {
-        Var(x) => {
+        TermNode::Var(x) => {
             match runtime.definition(x) {
-                Some(ast::Def(_, body)) => eval(body.clone(), ctx, runtime),
+                Some(Def(_, body)) => eval(body.clone(), ctx, runtime),
                 None => {
                     match ctx.lookup(&x) {
                         Some(v) => v,
@@ -270,24 +271,24 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
                 }
             }
         },
-        Lam(x, body) => {
+        TermNode::Lam(x, body) => {
             Value::Fun(x.clone(), body.clone(), ctx.clone())
         },
-        App(f, vs) => {
+        TermNode::App(f, vs) => {
             let f_value = eval(f.clone(), ctx.clone(), runtime);
             let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), runtime)).collect();
             apply(f_value, vs_values, runtime)
         },
-        Let(x, v, body) => {
+        TermNode::Let(x, v, body) => {
             let v_value = eval(v.clone(), ctx.clone(), runtime);
             let extended_ctx = ctx.extend(x, v_value);
             eval(body.clone(), extended_ctx, runtime)
         },
-        Match(t, match_arms) => {
+        TermNode::Match(t, match_arms) => {
             let t_value = eval(t.clone(), ctx.clone(), runtime);
             match t_value {
                 Value::Ctor(tag, contents) => {
-                    let ast::MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
+                    let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
 
                     let bind_names: Vec<String> = pat[1..].to_vec();
                     let bind_values: Vec<Value> = contents.clone();
@@ -299,7 +300,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(hole_info) => hole::fill(runtime, hole_info, ctx),
+        TermNode::Hole(hole_info) => hole::fill(runtime, hole_info, ctx),
     }
 }
 

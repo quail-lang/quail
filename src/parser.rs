@@ -4,6 +4,13 @@ use crate::ast;
 
 use ast::HoleId;
 use ast::HoleInfo;
+use ast::Term;
+use ast::TermNode;
+use ast::Module;
+use ast::MatchArm;
+use ast::Def;
+use ast::Import;
+use ast::Pattern;
 
 type ParseErr = String;
 
@@ -84,7 +91,7 @@ impl Parser {
         }
     }
 
-    fn parse_lambda(&mut self) -> Result<ast::Term, ParseErr> {
+    fn parse_lambda(&mut self) -> Result<Term, ParseErr> {
         self.consume_expect(Token::Lambda)?;
         let bind_vars = self.consume_identifier_plus()?;
         self.consume_expect(Token::FatArrow)?;
@@ -92,17 +99,17 @@ impl Parser {
 
         let mut term = body;
         for bind_var in bind_vars.into_iter().rev() {
-            term = ast::TermNode::Lam(bind_var, term).into();
+            term = TermNode::Lam(bind_var, term).into();
         }
         Ok(term)
     }
 
-    fn parse_term_part(&mut self) -> Result<Option<ast::Term>, ParseErr> {
+    fn parse_term_part(&mut self) -> Result<Option<Term>, ParseErr> {
         match self.peek() {
             Some(token) => match token {
                 Token::Ident(name) => {
                     self.consume();
-                    Ok(Some(ast::TermNode::Var(name).into()))
+                    Ok(Some(TermNode::Var(name).into()))
                 },
                 Token::Lambda => Ok(Some(self.parse_lambda()?)),
                 Token::LeftParen => {
@@ -119,11 +126,11 @@ impl Parser {
                     let value = self.parse_term()?;
                     self.consume_expect(Token::In)?;
                     let body = self.parse_term()?;
-                    Ok(Some(ast::TermNode::Let(bind_var, value, body).into()))
+                    Ok(Some(TermNode::Let(bind_var, value, body).into()))
                 },
                 Token::Hole(name, contents) => {
                     self.consume();
-                    Ok(Some(ast::TermNode::Hole(HoleInfo::new(self.generate_hole_id(), name, contents)).into()))
+                    Ok(Some(TermNode::Hole(HoleInfo::new(self.generate_hole_id(), name, contents)).into()))
                 }
                 _ => Ok(None),
             },
@@ -137,19 +144,19 @@ impl Parser {
         hole_id
     }
 
-    fn parse_pattern(&mut self) -> Result<ast::Pattern, ParseErr> {
+    fn parse_pattern(&mut self) -> Result<Pattern, ParseErr> {
         Ok(self.consume_identifier_plus()?)
     }
 
-    fn parse_match_arm(&mut self) -> Result<ast::MatchArm, ParseErr> {
+    fn parse_match_arm(&mut self) -> Result<MatchArm, ParseErr> {
         self.consume_expect(Token::With)?;
         let idents = self.parse_pattern()?;
         self.consume_expect(Token::FatArrow)?;
         let body = self.parse_term()?;
-        Ok(ast::MatchArm(idents, body))
+        Ok(MatchArm(idents, body))
     }
 
-    fn parse_match_arm_plus(&mut self) -> Result<Vec<ast::MatchArm>, ParseErr> {
+    fn parse_match_arm_plus(&mut self) -> Result<Vec<MatchArm>, ParseErr> {
         let mut match_arms = Vec::new();
         match_arms.push(self.parse_match_arm()?);
         while let Some(Token::With) = self.peek() {
@@ -158,14 +165,14 @@ impl Parser {
         Ok(match_arms)
     }
 
-    fn parse_match(&mut self) -> Result<ast::Term, ParseErr> {
+    fn parse_match(&mut self) -> Result<Term, ParseErr> {
         self.consume_expect(Token::Match)?;
         let discriminee = self.parse_term()?;
         let match_arms = self.parse_match_arm_plus()?;
-        Ok(ast::TermNode::Match(discriminee, match_arms).into())
+        Ok(TermNode::Match(discriminee, match_arms).into())
     }
 
-    fn parse_term(&mut self) -> Result<ast::Term, ParseErr> {
+    fn parse_term(&mut self) -> Result<Term, ParseErr> {
         if self.peek() == Some(Token::Match) {
             self.parse_match()
         } else {
@@ -188,30 +195,30 @@ impl Parser {
             if args.is_empty() {
                 Ok(func)
             } else {
-                Ok(ast::TermNode::App(func, args).into())
+                Ok(TermNode::App(func, args).into())
             }
         }
     }
 
-    fn parse_def(&mut self) -> Result<ast::Def, ParseErr> {
+    fn parse_def(&mut self) -> Result<Def, ParseErr> {
         self.consume_expect(Token::Def)?;
         let idents = self.consume_identifier_plus()?;
         let (binding_name, var_names) = idents.split_first().unwrap();
         self.consume_expect(Token::Equals)?;
         let mut body = self.parse_term()?;
         for var_name in var_names.iter().rev() {
-            body = ast::TermNode::Lam(var_name.to_string(), body).into();
+            body = TermNode::Lam(var_name.to_string(), body).into();
         }
-        Ok(ast::Def(binding_name.to_string(), body))
+        Ok(Def(binding_name.to_string(), body))
     }
 
-    fn parse_import(&mut self) -> Result<ast::Import, ParseErr> {
+    fn parse_import(&mut self) -> Result<Import, ParseErr> {
         self.consume_expect(Token::Import)?;
         let import_name = self.consume_identifier()?;
-        Ok(ast::Import(import_name))
+        Ok(Import(import_name))
     }
 
-    fn parse_module(&mut self) -> Result<ast::Module, ParseErr> {
+    fn parse_module(&mut self) -> Result<Module, ParseErr> {
         let mut definitions = Vec::new();
         let mut imports = Vec::new();
 
@@ -226,11 +233,11 @@ impl Parser {
                 return Err(format!("Expected an item declaration, found {:?}", token));
             }
         }
-        Ok(ast::Module::new(definitions, imports))
+        Ok(Module::new(definitions, imports))
     }
 }
 
-pub fn parse_term(input: &str) -> Result<ast::Term, ParseErr> {
+pub fn parse_term(input: &str) -> Result<Term, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
 
@@ -239,7 +246,7 @@ pub fn parse_term(input: &str) -> Result<ast::Term, ParseErr> {
     parser.parse_term()
 }
 
-pub fn parse_module(input: &str) -> Result<ast::Module, ParseErr> {
+pub fn parse_module(input: &str) -> Result<Module, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
 

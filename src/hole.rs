@@ -6,8 +6,9 @@ use crate::parser;
 
 use ast::Value;
 use ast::HoleInfo;
-use eval::Runtime;
 use ast::Context;
+use ast::Def;
+use eval::Runtime;
 
 pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
     match runtime.holes.get_mut(&hole_info.hole_id) {
@@ -99,7 +100,7 @@ fn show_bindings(ctx: &Context) {
 fn show_globals(runtime: &Runtime) {
     println!("    Globals:");
     for definition in runtime.definitions.iter() {
-        let ast::Def(name, _) = definition;
+        let Def(name, _) = definition;
         println!("        {}", &name);
     }
     println!();
