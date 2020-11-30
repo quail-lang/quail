@@ -1,4 +1,5 @@
 import nat
+import list
 
 def half : Nat -> Nat = fun n =>
     match n
@@ -13,19 +14,11 @@ def collatz : Nat -> Nat = fun n =>
         with zero => half n
         with succ n' => add (mul three n) one
 
-# For instance, starting with n = 12, one gets the sequence 12, 6, 3, 10, 5, 16, 8, 4, 2, 1.
+def collatz_sequence : Nat -> List = fun n =>
+    match eq n one
+        with true => cons one nil
+        with false => let x = println (show n) in cons n (collatz_sequence (collatz n))
+
 def main : Top =
-    let n = add ten two
-    in let x = println (show n)
-
-    in let n' = collatz n
-    in let x' = println (show n')
-
-    in let n'' = collatz n'
-    in let x'' = println (show n'')
-
-    in let n''' = collatz n''
-    in let x''' = println (show n''')
-
-    in let n'''' = collatz n'''
-    in println (show n'''')
+    let xs = collatz_sequence five
+    in println (show_list xs)

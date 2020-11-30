@@ -1,0 +1,20 @@
+inductive Nat
+    zero
+    succ Nat
+
+inductive Bool
+    false
+    true
+
+inductive Top
+    top
+
+inductive Bot
+
+inductive List
+    nil
+    cons Nat List
+
+coinductive CoNat
+    cozero
+    cosucc Nat

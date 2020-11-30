@@ -41,7 +41,7 @@ impl TypeDef {
     /// the return value, which is inferred to be the inductive type itself).. For example,
     /// if our constructor is `cons`, we would include ("cons", ["Nat", "List"]).
     ///
-    pub fn new(name: &str, flavor: Flavor, ctor_signatures: &[(Tag, &[Type])]) -> Self {
+    pub fn new(name: &str, flavor: Flavor, ctor_signatures: &[(Tag, Vec<Type>)]) -> Self {
         let mut ctor_types = HashMap::new();
         for (tag, typ) in ctor_signatures.into_iter().map(|(tag, sig)| (tag, ctor_type_from_signature(&name, &sig))) {
             ctor_types.insert(tag.to_string(), typ);
@@ -108,66 +108,50 @@ fn ctor_type_from_signature(name: &str, ctor_signature: &[Type]) -> Type {
     typ
 }
 
+pub fn parse_typedef(types_text_lines: &mut dyn Iterator<Item=&str>) -> Option<TypeDef> {
+    let first_line = types_text_lines.next()?;
+    let flavor = match first_line.split(" ").next()? {
+        "inductive" => Flavor::Inductive,
+        "coinductive" => Flavor::Coinductive,
+        _ => panic!("Illegal flavor in type declaration: {}", first_line),
+    };
+
+    let mut ctors: Vec<(String, Vec<Type>)> = Vec::new();
+
+    while let Some(line) = types_text_lines.next() {
+        let line = line.trim();
+        if line == "" {
+            break;
+        }
+
+        let parts: Vec<&str> = line.split(" ").collect();
+        let (ctor_name, arg_type_names) = parts.split_first()?;
+
+        let mut arg_types = Vec::new();
+        for arg_type_name in arg_type_names {
+            arg_types.push(TypeNode::Atom(arg_type_name.to_string()).into());
+        }
+
+        let ctor = (ctor_name.to_string(), arg_types);
+        ctors.push(ctor);
+    }
+
+    let name = first_line.split(" ").last()?.trim();
+    let typedef = TypeDef::new(name, flavor, ctors.as_slice());
+    Some(typedef)
+}
+
 ///
 /// Returns a list of inductive typedefs which are considered "built-in" in Quail.
 ///
 pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
-    let nat_type = TypeDef::new(
-        "Nat",
-        Flavor::Inductive,
-        &[
-            ("zero".to_string(), &[]),
-            ("succ".to_string(), &[TypeNode::Atom("Nat".to_string()).into()]),
-        ]
-    );
+    let mut typedefs = vec![];
+    let mut types_text_lines = include_str!("../assets/types.txt").lines();
+    while let Some(typedef) = parse_typedef(&mut types_text_lines) {
+        typedefs.push(typedef);
+    }
 
-    let bool_type = TypeDef::new(
-        "Bool",
-        Flavor::Inductive,
-        &[
-            ("true".to_string(), &[]),
-            ("false".to_string(), &[]),
-        ],
-    );
-
-    let top_type = TypeDef::new(
-        "Top",
-        Flavor::Inductive,
-        &[
-            ("top".to_string(), &[]),
-        ],
-    );
-
-    let bot_type = TypeDef::new(
-        "Bot",
-        Flavor::Inductive,
-        &[],
-    );
-
-    let list_type = TypeDef::new(
-        "List",
-        Flavor::Inductive,
-        &[
-            ("nil".to_string(), &[]),
-            ("cons".to_string(), &[
-                TypeNode::Atom("Nat".to_string()).into(),
-                TypeNode::Atom("List".to_string()).into(),
-            ]),
-        ],
-    );
-
-    let conat_type = TypeDef::new(
-        "CoNat",
-        Flavor::Coinductive,
-        &[
-            ("cozero".to_string(), &[]),
-            ("cosucc".to_string(), &[
-                TypeNode::Atom("CoNat".to_string()).into(),
-            ]),
-        ],
-    );
-
-    vec![nat_type, bool_type, top_type, bot_type, list_type, conat_type]
+    typedefs
 }
 
 
@@ -185,12 +169,33 @@ pub fn builtin_primdefs() -> Vec<PrimDef> {
         "show".to_string(),
         TypeNode::Arrow(
             TypeNode::Atom("Nat".to_string()).into(),
-            TypeNode::Atom("Str".to_string()).into()
+            TypeNode::Atom("Str".to_string()).into(),
         ).into(),
         Box::new(show_prim),
     );
 
-    vec![println_primdef, show_primdef]
+    let show_list_primdef = PrimDef::new(
+        "show_list".to_string(),
+        TypeNode::Arrow(
+            TypeNode::Atom("List".to_string()).into(),
+            TypeNode::Atom("Str".to_string()).into(),
+        ).into(),
+        Box::new(show_list_prim),
+    );
+
+    let cat_primdef = PrimDef::new(
+        "cat".to_string(),
+        TypeNode::Arrow(
+            TypeNode::Atom("Str".to_string()).into(),
+            TypeNode::Arrow(
+                TypeNode::Atom("Str".to_string()).into(),
+                TypeNode::Atom("Str".to_string()).into(),
+            ).into(),
+        ).into(),
+        Box::new(cat_prim),
+    );
+
+    vec![println_primdef, show_primdef, show_list_primdef, cat_primdef]
 }
 
 pub fn builtins_ctx() -> Context {
@@ -226,6 +231,28 @@ fn println_prim(_runtime: &mut Runtime, vs: Vec<Value>) -> Value {
 
 fn show_prim(runtime: &mut Runtime, vs: Vec<Value>) -> Value {
     assert_eq!(vs.len(), 1, "show must have exactly one argument");
+    let v = vs[0].clone();
+    match &v {
+        Value::Ctor(tag, _) => {
+            if tag == "zero" || tag == "succ" {
+                Value::Str(format!("{}", nat_to_u64(v)))
+            } else if tag == "nil" || tag == "cons" {
+                let val_vec = list_to_vec(v.clone());
+                let str_value_vec: Vec<Value> = val_vec.into_iter()
+                    .map(|v| show_prim(runtime, vec![v]))
+                    .collect();
+                let s: String = format!("{:?}", str_value_vec);
+                Value::Str(s)
+            } else {
+                Value::Str(format!("{:?}", v))
+            }
+        },
+        _ => panic!("Can't show this {:?}", &v),
+    }
+}
+
+fn show_list_prim(runtime: &mut Runtime, vs: Vec<Value>) -> Value {
+    assert_eq!(vs.len(), 1, "show_list must have exactly one argument");
     let v = vs[0].clone();
     match &v {
         Value::Ctor(tag, _) => {
@@ -286,4 +313,14 @@ fn nat_to_u64(v: Value) -> u64 {
     }
 
     result
+}
+
+fn cat_prim(_runtime: &mut Runtime, vs: Vec<Value>) -> Value {
+    assert_eq!(vs.len(), 2, "show_list must have exactly two arguments");
+    let v1 = vs[0].clone();
+    let v2 = vs[1].clone();
+    match (&v1, &v2) {
+        (Value::Str(s1), Value::Str(s2)) => Value::Str(format!("{}{}", s1, s2)),
+        _ => panic!("Arguments to cat must both be Str: {:?} {:?}", &v1, &v2),
+    }
 }
