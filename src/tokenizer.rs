@@ -15,8 +15,6 @@ pub enum Token {
     RightParen,
     LeftCurly,
     RightCurly,
-    LeftSquare,
-    RightSquare,
     Hole(Option<String>, Option<String>),
     Match,
     With,
@@ -62,8 +60,6 @@ impl Tokenizer {
         let single_char_tokens: HashMap<char, Token> = vec![
             ('(', Token::LeftParen),
             (')', Token::RightParen),
-            ('[', Token::LeftSquare),
-            (']', Token::RightSquare),
             ('{', Token::LeftCurly),
             ('}', Token::RightCurly),
         ].into_iter().collect();
