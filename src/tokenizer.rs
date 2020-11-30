@@ -63,6 +63,56 @@ impl Tokenizer {
         Ok(tokens)
     }
 
+    fn double_character_token(&mut self) -> Option<Token> {
+        let head_char = self.peek()?;
+        let next_char = self.peek_ahead(1)?;
+
+        if head_char == '-' && next_char == '>' {
+            self.consume();
+            self.consume();
+            Some(Token::Arrow(self.loc.clone()))
+            /* Err("Expected '>'".to_string()) */
+
+        } else if head_char == '=' && next_char == '>' {
+            self.consume();
+            self.consume();
+            Some(Token::FatArrow(self.loc.clone()))
+        } else {
+            None
+        }
+    }
+
+    fn single_character_token(&mut self) -> Option<Token> {
+        let loc = self.loc.clone();
+        let head_char = self.peek()?;
+
+        if head_char == '(' {
+            self.consume();
+            Some(Token::LeftParen(loc))
+        } else if head_char == ')' {
+            self.consume();
+            Some(Token::RightParen(loc))
+        } else if head_char == '{' {
+            self.consume();
+            Some(Token::LeftCurly(loc))
+        } else if head_char == '}' {
+            self.consume();
+            Some(Token::RightCurly(loc))
+        } else if head_char == ':' {
+            self.consume();
+            Some(Token::Colon(loc))
+        } else if head_char == '$' {
+            self.consume();
+            Some(Token::Dollar(loc))
+        } else if head_char == '=' {
+            self.consume();
+            Some(Token::Equals(self.loc.clone()))
+        } else {
+            None
+        }
+
+    }
+
     fn token(&mut self) -> Result<Option<Token>, TokenizeErr> {
         while let Some(head_char) = self.peek() {
             if head_char.is_ascii_whitespace() {
@@ -74,58 +124,22 @@ impl Tokenizer {
             }
         }
 
-        let loc = self.loc.clone();
         match self.peek() {
             Some(head_char) => {
-                if head_char == '(' {
-                    self.consume();
-                    Ok(Some(Token::LeftParen(loc)))
-                } else if head_char == ')' {
-                    self.consume();
-                    Ok(Some(Token::RightParen(loc)))
-                } else if head_char == '{' {
-                    self.consume();
-                    Ok(Some(Token::LeftCurly(loc)))
-                } else if head_char == '}' {
-                    self.consume();
-                    Ok(Some(Token::RightCurly(loc)))
+                if let Some(tok) = self.double_character_token() {
+                    Ok(Some(tok))
+                }
+                else if let Some(tok) = self.single_character_token() {
+                    Ok(Some(tok))
                 } else if head_char.is_ascii_alphabetic() {
                     let token = self.tokenize_identifier()?;
                     Ok(Some(token))
-                } else if head_char == ':' {
-                    self.consume();
-                    Ok(Some(Token::Colon(loc)))
-                } else if head_char == '$' {
-                    self.consume();
-                    Ok(Some(Token::Dollar(loc)))
                 } else if head_char == '?' {
                     Ok(Some(self.tokenize_hole()?))
                 } else if head_char == '"' {
                     Ok(Some(self.tokenize_str()?))
                 } else if head_char.is_ascii_digit() {
                     Ok(Some(self.tokenize_nat()?))
-                } else if head_char == '-' {
-                    match self.peek_ahead(1) {
-                        Some('>') => {
-                            self.consume();
-                            self.consume();
-                            Ok(Some(Token::Arrow(loc)))
-                        },
-                        _ => Err("Expected '>'".to_string()),
-                    }
-                } else if head_char == '=' {
-                    match self.peek_ahead(1) {
-                        Some('>') => {
-                            self.consume();
-                            self.consume();
-                            Ok(Some(Token::FatArrow(loc)))
-                        },
-                        Some(_) => {
-                            self.consume();
-                            Ok(Some(Token::Equals(loc)))
-                        }
-                        None => Ok(Some(Token::Equals(loc))),
-                    }
                 } else {
                     Err(format!("Unexpected character while parsing: {}", head_char))
                 }
