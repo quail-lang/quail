@@ -1,5 +1,4 @@
 use crate::ast;
-use std::fmt;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -222,42 +221,66 @@ impl Parser {
         }
     }
 
-    fn parse_var(&mut self) -> Result<ast::Term, ParseErr> {
-        match self.consume() {
-            Some(Token::Ident(name)) => {
-                Ok(ast::TermNode::Var(name).into())
+    fn parse_lambda(&mut self) -> Result<ast::Term, ParseErr> {
+        self.consume_expect(Token::Lambda)?;
+        let bind_var = self.consume_identifier()?;
+        self.consume_expect(Token::FatArrow)?;
+        let body = self.parse_term()?;
+        Ok(ast::TermNode::Lam(bind_var, body).into())
+    }
+
+    fn parse_term_part(&mut self) -> Result<Option<ast::Term>, ParseErr> {
+        match self.peek() {
+            Some(token) => match token {
+                Token::Ident(name) => {
+                    self.consume();
+                    Ok(Some(ast::TermNode::Var(name).into()))
+                },
+                Token::Lit(value) => {
+                    self.consume();
+                    Ok(Some(ast::TermNode::NatLit(value).into()))
+                },
+                Token::Lambda => Ok(Some(self.parse_lambda()?)),
+                Token::FatArrow => Err("Can't start a term with a fat array ^^;;".into()),
+                Token::LeftParen => {
+                    self.consume_expect(Token::LeftParen)?;
+                    let term = self.parse_term();
+                    self.consume_expect(Token::RightParen)?;
+                    Ok(Some(term?))
+                }
+                Token::RightParen => Ok(None),
             },
-            Some(token) => {
-                Err(format!("Expected identifier but found {:?}.", token))
-            },
-            None => {
-                Err(format!("Expected identifier but found end of input."))
-            },
+            None => Ok(None),
         }
     }
 
     fn parse_term(&mut self) -> Result<ast::Term, ParseErr> {
-        match self.peek() {
-            Some(token) => match token {
-                Token::Ident(name) => Ok(ast::TermNode::Var(name).into()),
-                Token::Lit(value) => Ok(ast::TermNode::NatLit(value).into()),
-                Token::Lambda => {
-                    self.consume_expect(Token::Lambda)?;
-                    let bind_var = self.consume_identifier()?;
-                    self.consume_expect(Token::FatArrow)?;
-                    let body = self.parse_term()?;
-                    Ok(ast::TermNode::Lam(bind_var, body).into())
-                }
-                Token::FatArrow => Err("Can't start a term with a fat array ^^;;".into()),
-                Token::LeftParen => {
-                    self.consume_expect(Token::LeftParen);
-                    let term = self.parse_term();
-                    self.consume_expect(Token::RightParen);
-                    term
-                }
-                Token::RightParen => Err("Can't start a term with a close paren, lol.".into()),
+        let mut term;
+        match self.parse_term_part()? {
+            None => {
+                return Err("Empty input".to_string());
             },
-            None => Err("Empty input".to_string()),
+            Some(term_part) => {
+                term = term_part;
+            },
+        }
+
+        let mut term_parts: Vec<ast::Term> = Vec::new();
+        while let Some(term_part) = self.parse_term_part()? {
+            term_parts.push(term_part);
+        }
+
+        for term_part in term_parts.into_iter() {
+            term = ast::TermNode::App(term, term_part).into();
+        }
+        Ok(term)
+    }
+
+    fn parse(&mut self) -> Result<ast::Term, ParseErr> {
+        let term = self.parse_term();
+        match self.peek() {
+            None => term,
+            Some(token) => Err(format!("Unexpected {:?} token at end of stream", token)),
         }
     }
 }
@@ -286,5 +309,5 @@ pub fn parse(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
 
     let mut parser = Parser::new(tokens);
 
-    parser.parse_term()
+    parser.parse()
 }

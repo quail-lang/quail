@@ -1,3 +1,4 @@
+/*
 use super::ast;
 use super::ast::Type;
 use super::ast::Term;
@@ -5,7 +6,6 @@ use super::ast::PrimFn;
 
 use std::collections::HashMap;
 
-/*
 pub fn type_of(t: Term) -> Type {
     let ctx = HashMap::new();
     type_of_ctx(t, ctx)
