@@ -14,6 +14,7 @@ use ast::HoleInfo;
 use ast::Import;
 use ast::MatchArm;
 use ast::Variable;
+use ast::Term;
 use builtins::TypeDef;
 
 use super::value::Value;
@@ -249,6 +250,49 @@ impl Runtime {
             .or_else(|| self.builtin_ctx.lookup(x, k))
     }
 
+    pub fn eval_match(&mut self, t: &TermNode, match_arms: &[MatchArm], ctx: Context) -> Value {
+        let t_value = self.eval(&t, ctx.clone());
+        let t_value = self.force(&t_value);
+        match t_value {
+            Value::Ctor(tag, contents) => {
+                let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
+
+                let bind_names: Vec<String> = pat[1..].to_vec();
+                let bind_values: Vec<Value> = contents.clone();
+                let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
+
+                let extended_ctx = ctx.extend_many(&bindings);
+                self.eval(&body, extended_ctx)
+            },
+            Value::CoCtor(tag, contents) => {
+                let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
+
+                let bind_names: Vec<String> = pat[1..].to_vec();
+                let bind_values: Vec<Value> = contents.clone();
+                let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
+
+                let extended_ctx = ctx.extend_many(&bindings);
+                self.eval(&body, extended_ctx)
+            },
+            _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
+        }
+    }
+
+    pub fn eval_app(&mut self, f: &Term, vs: &[Term], ctx: Context) -> Value {
+        let f_value = self.eval(&f, ctx.clone());
+        let f_value = self.force(&f_value);
+        let vs_values: Vec<Value> = vs.iter()
+            .map(|v| Value::Thunk(v.clone(), ctx.clone()))
+            .collect();
+        self.apply(f_value, vs_values)
+    }
+
+    pub fn eval_let(&mut self, x: &str, v: &Term, body: &Term, ctx: Context) -> Value {
+        let v_value = self.eval(&v, ctx.clone());
+        let extended_ctx = ctx.extend(x, v_value);
+        self.eval(&body, extended_ctx)
+    }
+
     /// Evaluates a term in a given local context and returns the result.
     pub fn eval(&mut self, t: &TermNode, ctx: Context) -> Value {
         match t {
@@ -256,47 +300,10 @@ impl Runtime {
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),
             TermNode::Hole(hole_info) => (*self.fill_hole_fn)(hole_info, ctx),
             TermNode::As(term, _typ) => self.eval(&term, ctx),
+            TermNode::Match(t, match_arms) => self.eval_match(t, match_arms, ctx),
             TermNode::Lam(x, body) => Value::Fun(x.clone(), body.clone(), ctx.clone()),
-            TermNode::App(f, vs) => {
-                let f_value = self.eval(&f, ctx.clone());
-                let f_value = self.force(&f_value);
-                let vs_values: Vec<Value> = vs.iter()
-                    .map(|v| Value::Thunk(v.clone(), ctx.clone()))
-                    .collect();
-                self.apply(f_value, vs_values)
-            },
-            TermNode::Let(x, v, body) => {
-                let v_value = self.eval(&v, ctx.clone());
-                let extended_ctx = ctx.extend(x, v_value);
-                self.eval(&body, extended_ctx)
-            },
-            TermNode::Match(t, match_arms) => {
-                let t_value = self.eval(&t, ctx.clone());
-                let t_value = self.force(&t_value);
-                match t_value {
-                    Value::Ctor(tag, contents) => {
-                        let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
-
-                        let bind_names: Vec<String> = pat[1..].to_vec();
-                        let bind_values: Vec<Value> = contents.clone();
-                        let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
-
-                        let extended_ctx = ctx.extend_many(&bindings);
-                        self.eval(&body, extended_ctx)
-                    },
-                    Value::CoCtor(tag, contents) => {
-                        let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
-
-                        let bind_names: Vec<String> = pat[1..].to_vec();
-                        let bind_values: Vec<Value> = contents.clone();
-                        let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
-
-                        let extended_ctx = ctx.extend_many(&bindings);
-                        self.eval(&body, extended_ctx)
-                    },
-                    _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
-                }
-            },
+            TermNode::App(f, vs) => self.eval_app(f, vs.as_slice(), ctx),
+            TermNode::Let(x, v, body) => self.eval_let(x, v, body, ctx),
         }
     }
 
