@@ -49,6 +49,16 @@ impl Runtime {
             std::fs::File::create(&readline_file).expect("Could not create readline file");
         }
 
+        let inductive_typedefs = builtins::builtin_inductive_typedefs();
+
+        let mut builtin_ctx = builtins::builtins_ctx();
+        let mut builtin_type_ctx = builtins::builtins_type_ctx();
+
+        for inductive_typedef in inductive_typedefs.iter() {
+            builtin_ctx = builtin_ctx.append(inductive_typedef.ctor_context());
+            builtin_type_ctx = builtin_type_ctx.append(inductive_typedef.ctor_type_context());
+        }
+
         let mut runtime = Runtime {
             imports: vec![],
             holes: HashMap::new(),
@@ -56,13 +66,13 @@ impl Runtime {
             editor: rustyline::Editor::new(),
             number_of_holes: 0,
 
-            inductive_typedefs: builtins::builtin_inductive_typedefs(),
+            inductive_typedefs,
 
             definition_ctx: Context::empty(),
-            builtin_ctx: builtins::builtins_ctx(),
+            builtin_ctx,
 
             definition_type_ctx: TypeContext::empty(),
-            builtin_type_ctx: builtins::builtins_type_ctx(),
+            builtin_type_ctx,
         };
 
         if runtime.editor.load_history(&runtime.readline_file).is_err() {

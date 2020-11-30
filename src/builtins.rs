@@ -92,14 +92,6 @@ pub fn builtins_ctx() -> Context {
     Context::empty()
         .extend("println", Value::Prim(rc::Rc::new(Box::new(println_prim))))
         .extend("show", Value::Prim(rc::Rc::new(Box::new(show_prim))))
-        .extend("zero", Value::Ctor("zero".into(), Vec::new()))
-        .extend("succ", Value::Ctor("succ".into(), Vec::new()))
-        .extend("true", Value::Ctor("true".into(), Vec::new()))
-        .extend("false", Value::Ctor("false".into(), Vec::new()))
-        .extend("nil", Value::Ctor("nil".into(), Vec::new()))
-        .extend("cons", Value::Ctor("cons".into(), Vec::new()))
-        .extend("unit", Value::Ctor("unit".into(), Vec::new()))
-        .extend("pair", Value::Ctor("pair".into(), Vec::new()))
 }
 
 pub fn builtins_type_ctx() -> TypeContext {
@@ -108,11 +100,6 @@ pub fn builtins_type_ctx() -> TypeContext {
                 TypeNode::Atom("Str".to_string()).into(),
                 TypeNode::Atom("Unit".to_string()).into(),
         ).into())
-        .extend("zero", TypeNode::Atom("Nat".to_string()).into())
-        .extend("succ", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Nat".to_string()).into()).into())
-        .extend("true", TypeNode::Atom("Bool".to_string()).into())
-        .extend("false", TypeNode::Atom("Bool".to_string()).into())
-        .extend("unit", TypeNode::Atom("Unit".to_string()).into())
         .extend("show", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Str".to_string()).into()).into())
 }
 
