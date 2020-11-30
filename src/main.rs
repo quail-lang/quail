@@ -9,16 +9,10 @@ enum Type {
     Arrow(Box<Type>, Box<Type>),
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 enum PrimFn {
     Succ,
     Add,
-}
-
-impl fmt::Debug for PrimFn {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "<primitive function>")
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -56,17 +50,20 @@ impl Context {
     }
 }
 
-fn eval(t: Term, _ctx: &Context) -> Term {
+fn eval(t: Term, ctx: &Context) -> Term {
     use TermNode::*;
     match t.as_ref() {
-        Var(x) => Var(x.clone()).into(),
-        Lam(x, ty, body) => Lam(x.clone(), ty.clone(), body.clone()).into(),
-        App(f, v) => return match f.as_ref() {
-            Lam(x, _ty, body) => subst(body.clone(), x.clone(), v.clone()).into(),
+        Var(x) => t.clone(),
+        Lam(x, ty, body) => Lam(x.clone(), ty.clone(), eval(body.clone(), ctx)).into(),
+        App(f, v) => match f.as_ref() {
+            Lam(x, _ty, body) => {
+                let reduced_body = subst(body.clone(), x.clone(), v.clone());
+                eval(reduced_body, ctx)
+            },
             _ => panic!("Applied argument to non-function."),
         },
-        BoolLit(b) => BoolLit(*b).into(),
-        NatLit(n) => NatLit(*n).into(),
+        BoolLit(b) => t.clone(),
+        NatLit(n) => t.clone(),
         PrimApp(prim_fn, vs) => eval_prim(prim_fn.clone(), vs.clone()),
     }
 }
@@ -95,7 +92,6 @@ fn eval_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Term {
             }
             panic!("Can't add on non-Nat.")
         },
-
     }
 }
 
@@ -106,12 +102,12 @@ fn subst(t: Term, x: String, v: Term) -> Term {
             if x == *y {
                 v.clone()
             } else {
-                Var(y.clone()).into()
+                t.clone()
             }
         }
         Lam(y, ty, body) => {
             if x == *y {
-                Lam(x.clone(), ty.clone(), body.clone()).into()
+                t.clone() 
             } else {
                 Lam(y.to_string(), ty.clone(), subst(body.clone(), x, v)).into()
             }
@@ -120,17 +116,24 @@ fn subst(t: Term, x: String, v: Term) -> Term {
             subst(f.clone(), x.clone(), v.clone()),
             subst(w.clone(), x.clone(), v.clone()),
         ).into(),
-        BoolLit(b) => BoolLit(*b).into(),
-        NatLit(n) => NatLit(*n).into(),
-        PrimApp(f, vs) => PrimApp(f.clone(), vs.clone()).into(),
+        BoolLit(b) => t.clone(),
+        NatLit(n) => t.clone(),
+        PrimApp(f, vs) => t.clone()
     }
 }
 
 fn main() {
     use TermNode::*;
-    let term = Term(rc::Rc::new(PrimApp(
+    let term: Term = PrimApp(
         PrimFn::Add,
         vec![Term(rc::Rc::new(NatLit(5))), Term(rc::Rc::new(NatLit(5)))],
-    )));
-    dbg!(eval(term, &Context::empty()));
+    ).into();
+
+
+    let term2: Term = App(
+        Lam("x".to_string(), Type::Nat, Var("x".to_string()).into()).into(),
+        term.clone(),
+    ).into();
+    dbg!(&term2);
+    dbg!(eval(term2, &Context::empty()));
 }
