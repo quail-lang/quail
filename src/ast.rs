@@ -3,16 +3,21 @@ use std::fmt;
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    pub items: Vec<Item>,
+    pub definitions: Vec<Def>,
+    pub imports: Vec<Import>,
 }
 
 impl Program {
-    pub fn def(&self, name: impl Into<String>) -> Option<&Item> {
+    pub fn new(definitions: Vec<Def>, imports: Vec<Import>) -> Self {
+        Program { definitions, imports }
+    }
+
+    pub fn definition(&self, name: impl Into<String>) -> Option<&Def> {
         let name: String = name.into();
-        for item in &self.items {
-            let Item::Def(item_name, _) = &item;
-            if *item_name == name {
-                return Some(item);
+        for definition in &self.definitions {
+            let Def(def_name, _) = &definition;
+            if *def_name == name {
+                return Some(definition);
             }
         }
         None
@@ -20,9 +25,10 @@ impl Program {
 }
 
 #[derive(Clone, Debug)]
-pub enum Item {
-    Def(String, Term),
-}
+pub struct Def(pub String, pub Term);
+
+#[derive(Clone, Debug)]
+pub struct Import(pub String);
 
 #[derive(Clone, Debug)]
 pub enum Type {

@@ -5,14 +5,13 @@ use crate::parser;
 use crate::ast;
 use crate::ast::Program;
 use crate::ast::Term;
-use crate::ast::Item;
 
 use crate::ast::Value;
 use crate::ast::Context;
 use ast::HoleId;
 
 pub fn exec(program: &Program) {
-    let Item::Def(_, main_body) = program.def("main").expect("There should be a main in your program").clone();
+    let ast::Def(_, main_body) = program.definition("main").expect("There should be a main in your program").clone();
     eval(main_body, prelude_ctx(), program);
 }
 
@@ -95,7 +94,7 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
             match ctx.lookup(x) {
                 Some(v) => v,
                 None => {
-                    let Item::Def(_, body) = program.def(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
+                    let ast::Def(_, body) = program.definition(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
                     eval(body.clone(), ctx, program)
                 },
             }
@@ -148,8 +147,8 @@ fn eval_hole(hole_id: HoleId, ctx: Context, program: &Program, contents: &str) -
 
     println!("");
     println!("    Globals:");
-    for item in program.items.iter() {
-        let Item::Def(name, _) = item;
+    for definition in program.definitions.iter() {
+        let ast::Def(name, _) = definition;
         println!("        {}", &name);
     }
 

@@ -20,6 +20,7 @@ pub enum Token {
     Hole(String),
     Match,
     With,
+    Import,
 }
 
 pub struct Tokenizer {
@@ -170,6 +171,7 @@ impl Tokenizer {
             ("in".to_string(), Token::In),
             ("match".to_string(), Token::Match),
             ("with".to_string(), Token::With),
+            ("import".to_string(), Token::Import),
         ].iter().cloned().collect();
         let first_char = self.input[self.cur];
         assert!(first_char.is_ascii_alphabetic());
@@ -385,25 +387,36 @@ impl Parser {
         }
     }
 
-    fn parse_def(&mut self) -> Result<ast:: Item, ParseErr> {
+    fn parse_def(&mut self) -> Result<ast::Def, ParseErr> {
         self.consume_expect(Token::Def)?;
         let binding_name = self.consume_identifier()?;
         self.consume_expect(Token::Equals)?;
         let body = self.parse_term()?;
-        Ok(ast::Item::Def(binding_name, body))
+        Ok(ast::Def(binding_name, body))
     }
 
-    fn parse_program(&mut self) -> Result<ast:: Program, ParseErr> {
-        let mut items = Vec::new();
+    fn parse_import(&mut self) -> Result<ast::Import, ParseErr> {
+        self.consume_expect(Token::Import)?;
+        let import_name = self.consume_identifier()?;
+        Ok(ast::Import(import_name))
+    }
+
+    fn parse_program(&mut self) -> Result<ast::Program, ParseErr> {
+        let mut definitions = Vec::new();
+        let mut imports = Vec::new();
+
         while let Some(token) = self.peek() {
             if token == Token::Def {
-                let item = self.parse_def()?;
-                items.push(item);
+                let definition = self.parse_def()?;
+                definitions.push(definition );
+            } else if token == Token::Import {
+                let import = self.parse_import()?;
+                imports.push(import);
             } else {
                 return Err(format!("Expected an item declaration, found {:?}", token));
             }
         }
-        Ok(ast::Program { items })
+        Ok(ast::Program::new(definitions, imports))
     }
 }
 
