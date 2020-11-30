@@ -13,6 +13,7 @@ use ast::HoleId;
 use ast::HoleInfo;
 use ast::Import;
 use ast::MatchArm;
+use ast::Variable;
 use builtins::TypeDef;
 
 use super::value::Value;
@@ -239,17 +240,20 @@ impl Runtime {
         }
     }
 
+    fn eval_variable(&self, v: &Variable, ctx: Context) -> Option<Value> {
+        let x = &v.name;
+        let k = v.layer;
+
+        ctx.lookup(&x, k)
+            .or_else(|| self.definition_ctx.lookup(x, k))
+            .or_else(|| self.builtin_ctx.lookup(x, k))
+    }
+
     /// Evaluates a term in a given local context and returns the result.
     pub fn eval(&mut self, t: &TermNode, ctx: Context) -> Value {
         match t {
             TermNode::Var(v) => {
-                let x = &v.name;
-                let k = v.layer;
-
-                ctx.lookup(&x, k)
-                    .or_else(|| self.definition_ctx.lookup(x, k))
-                    .or_else(|| self.builtin_ctx.lookup(x, k))
-                    .expect(&format!("Unbound variable {:?}", &x))
+                self.eval_variable(v, ctx).expect(&format!("Unbound variable {:?}", v))
             },
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),
             TermNode::Lam(x, body) => {
