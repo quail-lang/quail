@@ -376,7 +376,7 @@ pub enum Value {
     Ctor(Tag, Vec<Value>),
     CoCtor(Tag, Vec<Value>),
     Fun(String, Term, Context),
-    Prim(rc::Rc<Box<dyn Fn(&mut Runtime, Vec<Value>) -> Value>>),
+    Prim(rc::Rc<dyn Fn(&mut Runtime, Vec<Value>) -> Value>),
     Str(String),
     Thunk(Term, Context),
 }
