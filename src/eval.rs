@@ -70,6 +70,8 @@ pub fn prelude_ctx() -> Context {
         .extend(&"ifzero".into(), Value::Prim(rc::Rc::new(Box::new(ifzero_prim))))
         .extend(&"Zero".into(), Value::Ctor("Zero".into(), Vec::new()))
         .extend(&"Succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
+        .extend(&"True".into(), Value::Ctor("True".into(), Vec::new()))
+        .extend(&"False".into(), Value::Ctor("False".into(), Vec::new()))
 }
 
 pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
