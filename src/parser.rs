@@ -49,7 +49,7 @@ mod test {
 
     #[test]
     fn tokenize_test_b() {
-        let mut toker = Tokenizer::new("fn x => x");
+        let mut toker = Tokenizer::new("fun x => x");
         assert_eq!(
             toker.tokenize(),
             vec![Token::Lambda, Token::Ident("x".to_string()), Token::FatArrow, Token::Ident("x".to_string())]
@@ -296,7 +296,7 @@ mod test_parser {
             ast::TermNode::Var("x".into()).into(),
         ).into();
         assert_eq!(
-            parse("fn x => x"),
+            parse("fun x => x"),
             Ok(identity_fn),
         );
     }

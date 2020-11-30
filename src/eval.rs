@@ -7,8 +7,20 @@ use crate::ast::TermNode::*;
 use crate::ast::Value;
 use crate::ast::Context;
 
+fn succ_prim(v: Value) -> Value {
+    match v {
+        Value::Nat(n) => Value::Nat(n + 1),
+        other => panic!(format!("Couldn't succ {:?}", other)),
+    }
+}
+
 pub fn eval(t: Term) -> Value {
-    eval_ctx(t, Context::empty())
+    //eval_ctx(t, Context::empty())
+
+    let ctx = Context::empty()
+        .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))));
+
+    eval_ctx(t, ctx)
 }
 
 pub fn eval_ctx(t: Term, ctx: Context) -> Value {
@@ -24,35 +36,13 @@ pub fn eval_ctx(t: Term, ctx: Context) -> Value {
                     let v_value = eval_ctx(v.clone(), ctx.clone());
                     eval_ctx(body, local_ctx.extend(&x, v_value))
                 },
+                Value::Prim(prim) => {
+                    let v_value = eval_ctx(v.clone(), ctx.clone());
+                    prim(v_value)
+                },
                 _ => panic!("Can't apply a value to a non-function {:?}.", &f),
             }
         },
         NatLit(n) => Value::Nat(*n),
-        PrimApp(prim_fn, vs) => unimplemented!(), //eval_prim(prim_fn.clone(), vs.clone()),
-    }
-}
-
-fn eval_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Term {
-    match prim_fn {
-        PrimFn::Succ => {
-            assert!(vs.len() == 1, "Succ takes 1 argument.");
-            let v = &vs[0];
-            if let NatLit(n) = v.as_ref() {
-                NatLit(n + 1).into()
-            } else {
-                panic!("Can't succ on non-Nat.")
-            }
-        },
-        PrimFn::Add => {
-            assert!(vs.len() == 2, "Add takes 2 arguments.");
-            let v1 = &vs[0];
-            let v2 = &vs[1];
-            if let NatLit(n) = v1.as_ref() {
-                if let NatLit(m) = v2.as_ref() {
-                    return NatLit(n + m).into()
-                }
-            }
-            panic!("Can't add on non-Nat.")
-        },
     }
 }

@@ -36,13 +36,13 @@ pub enum TermNode {
     Lam(String, Term),
     App(Term, Term),
     NatLit(u64),
-    PrimApp(PrimFn, Vec<Term>),
 }
 
 #[derive(Clone)]
 pub enum Value {
     Nat(u64),
     Fun(String, Term, Context),
+    Prim(rc::Rc<Box<Fn(Value) -> Value>>),
 }
 
 impl fmt::Debug for Value {
@@ -50,6 +50,7 @@ impl fmt::Debug for Value {
         match self {
             Value::Nat(n) => write!(f, "{}", n),
             Value::Fun(_, _, _) => write!(f, "<fun>"),
+            Value::Prim(_) => write!(f, "<prim>"),
         }
     }
 }
