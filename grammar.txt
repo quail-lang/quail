@@ -1,6 +1,7 @@
 PROGRAM := ITEM*
-ITEM := DEF
+ITEM := DEF | IMPORT
 DEF := def IDENT = TERM
+IMPORT := import IDENT
 TERM := TERMPART+ | match TERM PAT*
 TERMPART := VAR | LAMBDA | LET | HOLE | ( TERM )
 PAT := with IDENT+ => TERM
@@ -9,5 +10,5 @@ IDENT := x, y, z, ...
 VAR := IDENT
 APP := TERM TERM
 LIT := 0, 1, ...
-LAMBDA := fn IDENT => TERM
+LAMBDA := fun IDENT+ => TERM
 LET := let IDENT = TERM in TERM
