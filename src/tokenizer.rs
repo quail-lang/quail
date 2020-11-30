@@ -52,6 +52,13 @@ impl Tokenizer {
     pub fn tokenize(&mut self) -> Result<Vec<Token>, TokenizeErr> {
         let mut tokens = Vec::new();
 
+        while let Some(token) = self.token()? {
+            tokens.push(token);
+        }
+        Ok(tokens)
+    }
+
+    fn token(&mut self) -> Result<Option<Token>, TokenizeErr> {
         let single_char_tokens: HashMap<char, Token> = vec![
             ('(', Token::LeftParen),
             (')', Token::RightParen),
@@ -64,35 +71,43 @@ impl Tokenizer {
         while let Some(head_char) = self.peek() {
             if head_char.is_ascii_whitespace() {
                 self.consume();
-            } else if single_char_tokens.contains_key(&head_char) {
-                let token = single_char_tokens.get(&head_char).unwrap().clone();
-                tokens.push(token);
-                self.consume();
-            } else if head_char.is_ascii_alphabetic() {
-                let token = self.tokenize_identifier()?;
-                tokens.push(token);
             } else if head_char == '#' {
                 self.consume_comment();
-            } else if head_char == '?' {
-                tokens.push(self.tokenize_hole()?);
-            } else if head_char == '=' {
-                match self.peek_ahead(1) {
-                    Some('>') => {
-                        tokens.push(Token::FatArrow);
-                        self.consume();
-                        self.consume();
-                    },
-                    Some(_) => {
-                        tokens.push(Token::Equals);
-                        self.consume();
-                    }
-                    None => tokens.push(Token::Equals),
-                }
             } else {
-                return Err(format!("Unexpected character while parsing: {}", head_char));
+                break;
             }
         }
-        Ok(tokens)
+
+        match self.peek() {
+            Some(head_char) => {
+                if single_char_tokens.contains_key(&head_char) {
+                    let token = single_char_tokens.get(&head_char).unwrap().clone();
+                    self.consume();
+                    Ok(Some(token))
+                } else if head_char.is_ascii_alphabetic() {
+                    let token = self.tokenize_identifier()?;
+                    Ok(Some(token))
+                } else if head_char == '?' {
+                    Ok(Some(self.tokenize_hole()?))
+                } else if head_char == '=' {
+                    match self.peek_ahead(1) {
+                        Some('>') => {
+                            self.consume();
+                            self.consume();
+                            Ok(Some(Token::FatArrow))
+                        },
+                        Some(_) => {
+                            self.consume();
+                            Ok(Some(Token::Equals))
+                        }
+                        None => Ok(Some(Token::Equals)),
+                    }
+                } else {
+                    Err(format!("Unexpected character while parsing: {}", head_char))
+                }
+            },
+            None => Ok(None),
+        }
     }
 
     fn consume_comment(&mut self) {
