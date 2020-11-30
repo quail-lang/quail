@@ -92,9 +92,11 @@ fn repl_line(runtime: &mut Runtime, line: &str) {
 }
 
 fn repl_line_import(runtime: &mut Runtime, line: &str) {
+    let mut import_resolver = runtime::FileImportResolver::new("examples");
+
     match parser::parse_import(None, line) {
         Ok(Import(module_name)) => {
-            match runtime.import(&module_name) {
+            match runtime.import(&module_name, &mut import_resolver, false) {
                 Ok(()) => println!("import successful"),
                 Err(msg) => println!("{:?}", msg),
             }

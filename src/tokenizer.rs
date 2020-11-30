@@ -1,7 +1,5 @@
 use std::fmt;
 use std::collections::HashMap;
-use std::path::Path;
-use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
@@ -36,7 +34,7 @@ pub struct Tokenizer {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Loc {
-    pub path: Option<PathBuf>,
+    pub path: Option<String>,
 
     // Both line and col are zero-based, so be mindful when printing!
     pub line: usize,
@@ -46,7 +44,7 @@ pub struct Loc {
 type TokenizeErr = String;
 
 impl Tokenizer {
-    pub fn new(source: Option<&Path>, input: &str) -> Self {
+    pub fn new(source: Option<String>, input: &str) -> Self {
         Tokenizer {
             input: input.chars().collect(),
             cur: 0,
@@ -340,9 +338,9 @@ impl Tokenizer {
 }
 
 impl Loc {
-    fn new(source: Option<&Path>) -> Self {
+    fn new(source: Option<String>) -> Self {
         Loc {
-            path: source.map(|p| p.to_path_buf()),
+            path: source,
             line: 0,
             col: 0,
         }
@@ -362,7 +360,7 @@ impl fmt::Display for Loc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Line {} col {}", self.line + 1, self.col + 1)?;
         if let Some(path) = &self.path {
-            write!(f, " at {}", path.to_string_lossy())?;
+            write!(f, " at {}", path)?;
         }
         Ok(())
     }

@@ -31,7 +31,8 @@ fn main() -> Result<(), runtime::RuntimeError> {
         },
         Some(filename) => {
             let mut runtime = runtime::Runtime::new();
-            runtime.load(filename)?;
+            let mut import_resolver = runtime::FileImportResolver::new("examples");
+            runtime.import(&filename, &mut import_resolver, true)?;
             runtime.exec();
         },
     }

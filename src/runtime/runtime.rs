@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::io::Read;
 
 use crate::parser;
 use crate::ast;
@@ -19,6 +19,7 @@ use builtins::TypeDef;
 
 use super::value::Value;
 use super::context::Context;
+use super::import::ImportResolver;
 
 ///
 /// Runtime is the global store for all of the information loaded into the program.
@@ -27,8 +28,6 @@ pub struct Runtime {
     /// Keeps track of which modules have been loaded into the Runtime
     /// already. This is currently being used to break cyclic imports.
     pub imports: Vec<String>,
-
-    pub import_base: PathBuf,
 
     /// holes - keeps track of what values have been supplied for each hole.
     pub holes: HashMap<HoleId, Value>,
@@ -62,12 +61,6 @@ impl Runtime {
     /// Creates a new Runtime with no modules loaded. The inductive typedefs are defined, as well as the builtins.
     /// Sets up the history file, creating it if it doesn't exist.
     pub fn new() -> Self {
-        let import_base_string = std::env::var("QUAIL_IMPORT_BASE").unwrap_or(".".to_string());
-        let import_base = PathBuf::from(&import_base_string).canonicalize().unwrap();
-        if !import_base.is_dir() {
-            panic!("QUAIL_IMPORT_BASE is {} but that directory does not exist.", import_base_string);
-        }
-
         let inductive_typedefs: HashMap<String, TypeDef> = builtins::builtin_inductive_typedefs()
             .iter()
             .map(|itd| (itd.name.to_string(), itd.clone()))
@@ -85,7 +78,6 @@ impl Runtime {
 
         Runtime {
             imports: vec![],
-            import_base,
             holes: HashMap::new(),
             number_of_holes: 0,
 
@@ -100,62 +92,24 @@ impl Runtime {
         }
     }
 
-    /// Imports a module. `name` is the name of the module. The filepath is given by
-    /// the name of the module with `.ql` appended to the end. Modules are searched in
-    /// the user's current working directory.
-    pub fn import(&mut self, name: &str) -> Result<(), RuntimeError> {
-        let mut import_filename = name.to_string();
-        import_filename.push_str(".ql");
-        let import_filename = &Path::new(&import_filename);
-        self.load_module(import_filename, &self.import_base.clone(), false)
-    }
-
-    pub fn load(&mut self, filepath: impl AsRef<Path>) -> Result<(), RuntimeError> {
-        let basedir = Path::new(filepath.as_ref().parent().expect("Invalid path"));
-        let filename = Path::new(filepath.as_ref().file_name().expect("Invalid path"));
-        self.load_module(filename, basedir, true)
-    }
-
-    /// Loads a  a module. `filename` is given without the directory part. For instance,
-    /// "main.ql". `basedir`, on the other hand, is the name of the directory. So the actual
-    /// filepath would be `basedir.join(filename)`. We pass `basedir` in as a separate part so
-    /// that we can import any modules specified by this module.
-    ///
-    /// `is_main` dictates whether this is the first module to be loaded by the ruletime, and
-    /// thus, the one whose main we should use. When `load_module` calls itself to import a
-    /// module recursively, it will do so with `is_main` set to `false`.
-    ///
-    /// Loading a module will have the effect of parsing the file, adding any new holes found
-    /// in it, recursively loading any imports found in the file, typechecking any definitions,
-    /// and then adding those definitions to the Runtime.
-    fn load_module(
+    pub fn import(
         &mut self,
-        filename: &Path,
-        basedir: &Path,
+        import_name: &str,
+        resolver: &mut dyn ImportResolver,
         is_main: bool,
     ) -> Result<(), RuntimeError> {
-        if self.imports.contains(&filename.to_string_lossy().to_string()) {
-            return Ok(());
-        } else {
-            self.imports.push(filename.to_string_lossy().to_string());
-        }
-        let filepath = basedir.join(filename);
-        use std::fs;
-        use std::io::Read;
         let mut module_text = String::new();
-        fs::File::open(&filepath)?.read_to_string(&mut module_text)?;
 
-        let (module, number_of_new_holes) = parser::parse_module(self.next_hole_id(), Some(filename), &module_text)?;
+        let mut resolved_import = resolver.resolve(import_name)?;
+        resolved_import.reader.read_to_string(&mut module_text)?;
+        let source = Some(resolved_import.source);
+
+        let (module, number_of_new_holes) = parser::parse_module(self.next_hole_id(), source, &module_text)?;
         self.add_holes(number_of_new_holes);
 
         for import in module.imports {
             let Import(name) = import;
-
-            let mut import_filename = name.to_string();
-            import_filename.push_str(".ql");
-            let import_filename = &Path::new(&import_filename);
-
-            self.load_module(import_filename, basedir, false)?;
+            self.import(&name, resolver, false)?;
         }
 
         for definition in module.definitions.iter() {

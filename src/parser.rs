@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
 use crate::types::Type;
@@ -469,7 +467,7 @@ impl Parser {
     }
 }
 
-pub fn parse_term(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<(Term, u64), ParseErr> {
+pub fn parse_term(starting_hole_id: HoleId, source: Option<String>, input: &str) -> Result<(Term, u64), ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
@@ -479,7 +477,7 @@ pub fn parse_term(starting_hole_id: HoleId, source: Option<&Path>, input: &str) 
     Ok((term, parser.number_of_holes()))
 }
 
-pub fn parse_module(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<(Module, u64), ParseErr> {
+pub fn parse_module(starting_hole_id: HoleId, source: Option<String>, input: &str) -> Result<(Module, u64), ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
@@ -489,7 +487,7 @@ pub fn parse_module(starting_hole_id: HoleId, source: Option<&Path>, input: &str
     Ok((module, parser.number_of_holes()))
 }
 
-pub fn parse_import(source: Option<&Path>, input: &str) -> Result<Import, ParseErr> {
+pub fn parse_import(source: Option<String>, input: &str) -> Result<Import, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
@@ -497,7 +495,7 @@ pub fn parse_import(source: Option<&Path>, input: &str) -> Result<Import, ParseE
     parser.parse_import()
 }
 
-pub fn parse_def(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<Def, ParseErr> {
+pub fn parse_def(starting_hole_id: HoleId, source: Option<String>, input: &str) -> Result<Def, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
