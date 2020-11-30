@@ -12,5 +12,6 @@ APP := TERM TERM
 LIT := 0, 1, ...
 LAMBDA := fun IDENT+ => TERM
 LET := let IDENT = TERM in TERM
-TYPE := ATOM -> TYPE | ATOM | ( TYPE )
+TYPE := TYPEPART (-> TYPEPART)*
+TYPEPART := ATOM | ( ATOM )
 COMMENTS := # ... to end of line

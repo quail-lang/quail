@@ -333,7 +333,7 @@ impl Parser {
         Ok(TermNode::Match(discriminee, match_arms).into())
     }
 
-    fn parse_type(&mut self) -> Result<Type, ParseErr> {
+    fn parse_type_part(&mut self) -> Result<Type, ParseErr> {
         match self.peek() {
             Some(Token::LeftParen(_)) => {
                 self.consume_expect_left_paren()?;
@@ -342,21 +342,26 @@ impl Parser {
                 return Ok(typ);
             },
             Some(Token::Ident(_, _name)) => {
-                let mut idents = vec![self.consume_identifier()?];
-                while let Some(Token::Arrow(_)) = self.peek() {
-                    self.consume_expect_arrow()?;
-                    idents.push(self.consume_identifier()?);
-                }
-
-                let idents: Vec<Type> = idents.into_iter().rev().map(|ident| TypeNode::Atom(ident).into()).collect();
-                let (first, rest) = idents.split_first().unwrap();
-                let term: Type = rest.to_vec().iter().fold(first.clone(), |acc, dom| TypeNode::Arrow(dom.clone(), acc.clone()).into());
-
-                Ok(term)
+                let ident = self.consume_identifier()?;
+                Ok(TypeNode::Atom(ident).into())
             },
             None => Err("Expected '(' or identifier, but found end of input".to_string()),
             _ => Err(format!("Expected '(' or identifier, but found {:?}", self.peek().unwrap())),
         }
+    }
+
+    fn parse_type(&mut self) -> Result<Type, ParseErr> {
+        let mut type_parts = vec![self.parse_type_part()?];
+        while let Some(Token::Arrow(_)) = self.peek() {
+            self.consume_expect_arrow()?;
+            type_parts.push(self.parse_type_part()?);
+        }
+
+        type_parts.reverse();
+
+        let (first, rest) = type_parts.split_first().unwrap();
+        let term: Type = rest.to_vec().iter().fold(first.clone(), |acc, cod| TypeNode::Arrow(cod.clone(), acc.clone()).into());
+        Ok(term)
     }
 
     fn parse_term(&mut self) -> Result<Term, ParseErr> {
