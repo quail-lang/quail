@@ -1,12 +1,13 @@
-use crate::eval::Runtime;
+use rustyline::error::ReadlineError;
+
 use crate::ast;
-use crate::ast::Context;
 use crate::eval;
-use crate::ast::Value;
-use crate::ast::HoleInfo;
 use crate::parser;
 
-use rustyline::error::ReadlineError;
+use ast::Value;
+use ast::HoleInfo;
+use eval::Runtime;
+use ast::Context;
 
 pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
     match runtime.holes.get_mut(&hole_info.hole_id) {

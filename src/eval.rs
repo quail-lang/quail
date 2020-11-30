@@ -1,20 +1,19 @@
 use std::collections::HashMap;
 use std::rc;
 
-use crate::parser;
-
-use crate::ast;
-use crate::ast::Term;
-
-use crate::ast::Def;
-use crate::ast::Value;
-use crate::ast::Context;
-use crate::hole;
-use ast::HoleId;
-
+use dirs;
 use rustyline::error::ReadlineError;
 
-use dirs;
+use crate::parser;
+use crate::ast;
+use crate::hole;
+
+use ast::Term;
+use ast::Def;
+use ast::Value;
+use ast::Context;
+use ast::HoleId;
+
 
 #[derive(Debug)]
 pub struct Runtime {

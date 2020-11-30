@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     Ident(String),
