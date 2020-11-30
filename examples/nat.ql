@@ -14,17 +14,17 @@ def add : Nat -> Nat -> Nat = fun n m =>
         with zero => m
         with succ n => succ (add n m)
 
-def mul n m : Nat -> Nat -> Nat =
+def mul : Nat -> Nat -> Nat = fun n m =>
     match n
         with zero => zero
         with succ n => add m (mul n m)
 
-def pow n m : Nat -> Nat -> Nat =
+def pow : Nat -> Nat -> Nat = fun n m =>
     match m
         with zero => succ zero
         with succ m' => mul n (pow n m')
 
-def sub n m : Nat -> Nat -> Nat =
+def sub : Nat -> Nat -> Nat = fun n m =>
     match m
         with zero => n
         with succ m' => (
@@ -38,7 +38,7 @@ def is_zero : Nat -> Bool = fun n =>
         with zero => true
         with succ x => false
 
-def less_than_eq n m : Nat -> Nat -> Bool =
+def less_than_eq : Nat -> Nat -> Bool = fun n m =>
     match n
         with zero => true
         with succ n' => (
@@ -47,15 +47,15 @@ def less_than_eq n m : Nat -> Nat -> Bool =
                 with succ m' => less_than_eq n' m'
         )
 
-def less_than n m : Nat -> Nat -> Bool =
+def less_than : Nat -> Nat -> Bool = fun n m =>
     less_than_eq (succ n) m
 
-def rem n m : Nat -> Nat -> Nat =
+def rem : Nat -> Nat -> Nat = fun n m =>
     match less_than n m
         with true => n
         with false => rem (sub n m) m
 
-def eq n m : Nat -> Nat -> Bool =
+def eq : Nat -> Nat -> Bool = fun n m =>
     match n
         with zero => (
             match m

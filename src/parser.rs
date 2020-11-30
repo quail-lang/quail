@@ -402,15 +402,11 @@ impl Parser {
 
     fn parse_def(&mut self) -> Result<Def, ParseErr> {
         self.consume_expect_def()?;
-        let idents = self.consume_identifier_plus()?;
-        let (binding_name, var_names) = idents.split_first().unwrap();
+        let binding_name = self.consume_identifier()?;
         self.consume_expect_colon()?;
         let typ = self.parse_type()?;
         self.consume_expect_equals()?;
-        let mut body = self.parse_term()?;
-        for var_name in var_names.iter().rev() {
-            body = TermNode::Lam(var_name.to_string(), body).into();
-        }
+        let body = self.parse_term()?;
         Ok(Def(binding_name.to_string(), typ, body))
     }
 
