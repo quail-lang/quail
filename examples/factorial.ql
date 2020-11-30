@@ -1,13 +1,13 @@
-def add = fun n m =>
-    match n
-        with Zero => m
-        with Succ n => Succ (add n m)
-
 def one = Succ Zero
 def two = Succ one
 def three = Succ two
 def four = Succ three
 def five = Succ four
+
+def add = fun n m =>
+    match n
+        with Zero => m
+        with Succ n => Succ (add n m)
 
 def mul = fun n m =>
     match n
