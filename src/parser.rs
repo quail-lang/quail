@@ -457,3 +457,11 @@ pub fn parse_module(starting_hole_id: HoleId, source: Option<&Path>, input: &str
     let module = parser.parse_module()?;
     Ok((module, parser.number_of_holes()))
 }
+
+pub fn parse_import(source: Option<&Path>, input: &str) -> Result<Import, ParseErr> {
+    let mut toker = Tokenizer::new(source, input);
+    let tokens = toker.tokenize()?;
+
+    let mut parser = Parser::new(0 as HoleId, tokens);
+    parser.parse_import()
+}

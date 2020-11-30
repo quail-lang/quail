@@ -83,6 +83,15 @@ impl Runtime {
         }
     }
 
+    pub fn import(&mut self, name: &str) {
+        let mut import_filename = name.to_string();
+        import_filename.push_str(".ql");
+        let import_filename = &std::path::Path::new(&import_filename);
+
+        let basedir = std::env::current_dir().expect("You aren't in a directory somehow?");
+        self.load_module(import_filename, &basedir, false);
+    }
+
     pub fn load(&mut self, filepath: impl AsRef<std::path::Path>) {
         let basedir = std::path::Path::new(filepath.as_ref().parent().expect("Invalid path"));
         let filename = std::path::Path::new(filepath.as_ref().file_name().expect("Invalid path"));
