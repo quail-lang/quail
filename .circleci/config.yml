@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/rust:latest
+
+    steps:
+      - checkout
+
+      - run:
+          name: Stable Build
+          command: |
+            rustup update stable
+            rustc --version --verbose
+            cargo --version --verbose
+            cargo build
+            cargo build --release
+
+      - run:
+          name: Run Tests
+          command: |
+            cargo test
+            cargo test --release
