@@ -57,7 +57,7 @@ impl From<TermNode> for Term {
 pub enum TermNode {
     Var(String),
     Lam(String, Term),
-    App(Term, Term),
+    App(Term, Vec<Term>),
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
     Hole,
@@ -82,7 +82,7 @@ pub type Pattern = Vec<String>;
 pub enum Value {
     Ctor(CtorTag, Vec<Value>),
     Fun(String, Term, Context),
-    Prim(rc::Rc<Box<Fn(Value) -> Value>>),
+    Prim(rc::Rc<Box<Fn(Vec<Value>) -> Value>>),
 }
 
 pub type CtorTag = String;

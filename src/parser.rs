@@ -388,28 +388,26 @@ impl Parser {
     }
 
     fn parse_term(&mut self) -> Result<ast::Term, ParseErr> {
-        let mut term;
         if self.peek() == Some(Token::Match) {
             self.parse_match()
         } else {
+            let func;
+            let mut args = Vec::new();
+
             match self.parse_term_part()? {
                 None => {
                     return Err("Empty input".to_string());
                 },
                 Some(term_part) => {
-                    term = term_part;
+                    func = term_part;
                 },
             }
 
-            let mut term_parts: Vec<ast::Term> = Vec::new();
             while let Some(term_part) = self.parse_term_part()? {
-                term_parts.push(term_part);
+                args.push(term_part);
             }
 
-            for term_part in term_parts.into_iter() {
-                term = ast::TermNode::App(term, term_part).into();
-            }
-            Ok(term)
+            Ok(ast::TermNode::App(func, args).into())
         }
     }
 

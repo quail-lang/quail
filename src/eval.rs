@@ -3,7 +3,6 @@ use std::rc;
 use crate::ast;
 use crate::ast::Program;
 use crate::ast::Term;
-use crate::ast::TermNode;
 use crate::ast::Item;
 
 use crate::ast::Value;
@@ -14,8 +13,10 @@ pub fn exec(program: &Program) {
     eval(main_body, prelude_ctx(), program);
 }
 
-fn succ_prim(v: Value) -> Value {
-    match v.clone() {
+fn succ_prim(vs: Vec<Value>) -> Value {
+    assert_eq!(vs.len(), 1, "succ must have exactly one argument");
+    let v = vs[0].clone();
+    match &v {
         Value::Ctor(tag, _) => {
             if tag == "zero" {
                 Value::Ctor("succ".into(), vec![Value::Ctor("zero".into(), vec![])])
@@ -29,7 +30,9 @@ fn succ_prim(v: Value) -> Value {
     }
 }
 
-fn println_prim(v: Value) -> Value {
+fn println_prim(vs: Vec<Value>) -> Value {
+    assert_eq!(vs.len(), 1, "succ must have exactly one argument");
+    let v = vs[0].clone();
     println!("{:?}", v);
     v
 }
@@ -42,6 +45,29 @@ pub fn prelude_ctx() -> Context {
         .extend(&"true".into(), Value::Ctor("true".into(), Vec::new()))
         .extend(&"false".into(), Value::Ctor("false".into(), Vec::new()))
 
+}
+
+fn apply(func: Value, args: Vec<Value>, program: &Program) -> Value {
+    match &func {
+        Value::Fun(x, body, local_ctx) => {
+            match args.clone().split_first() {
+                None => func,
+                Some((v, vs_remaining)) => {
+                    let new_ctx = local_ctx.extend(&x, v.clone());
+                    let new_func = eval(body.clone(), new_ctx, program);
+                    apply(new_func, vs_remaining.to_vec(), program)
+                },
+            }
+        },
+        Value::Ctor(tag, contents) => {
+            let mut new_contents = contents.clone();
+            new_contents.extend(args);
+            Value::Ctor(tag.to_string(), new_contents)
+        },
+        Value::Prim(prim) => {
+            prim(args)
+        },
+    }
 }
 
 pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
@@ -59,18 +85,10 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
         Lam(x, body) => {
             Value::Fun(x.clone(), body.clone(), ctx.clone())
         },
-        App(f, v) => {
-            match eval(f.clone(), ctx.clone(), program) {
-                Value::Fun(x, body, local_ctx) => {
-                    let v_value = eval(v.clone(), ctx.clone(), program);
-                    eval(body, local_ctx.extend(&x, v_value), program)
-                },
-                Value::Prim(prim) => {
-                    let v_value = eval(v.clone(), ctx.clone(), program);
-                    prim(v_value)
-                },
-                _ => panic!("Can't apply a value to a non-function {:?}.", &f),
-            }
+        App(f, vs) => {
+            let f_value = eval(f.clone(), ctx.clone(), program);
+            let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), program)).collect();
+            apply(f_value, vs_values, program)
         },
         Let(x, v, body) => {
             let v_value = eval(v.clone(), ctx.clone(), program);
