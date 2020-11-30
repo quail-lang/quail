@@ -33,7 +33,16 @@ impl InductiveTypeDef {
         TypeNode::Atom(self.name.clone()).into()
     }
 
-    pub fn ctor_context(&self) -> TypeContext {
+    pub fn ctor_context(&self) -> Context {
+        let ctors: Vec<&CtorTag> = self.ctor_types.keys().collect();
+        let mut ctx = Context::empty();
+        for tag in ctors {
+            ctx = ctx.extend(tag, Value::Ctor(tag.to_string(), vec![]));
+        }
+        ctx
+    }
+
+    pub fn ctor_type_context(&self) -> TypeContext {
         let ctor_types: Vec<(&CtorTag, &Type)> = self.ctor_types.iter().collect();
         let mut ctx = TypeContext::empty();
         for (tag, typ) in ctor_types {
