@@ -82,15 +82,15 @@ pub fn builtin_inductive_typedefs() -> Vec<InductiveTypeDef> {
 pub fn builtins_ctx() -> Context {
     Context::empty()
         .extend("println", Value::Prim(rc::Rc::new(Box::new(println_prim))))
+        .extend("show", Value::Prim(rc::Rc::new(Box::new(show_prim))))
         .extend("zero", Value::Ctor("zero".into(), Vec::new()))
-        .extend("succ", Value::Prim(rc::Rc::new(Box::new(succ_prim))))
+        .extend("succ", Value::Ctor("succ".into(), Vec::new()))
         .extend("true", Value::Ctor("true".into(), Vec::new()))
         .extend("false", Value::Ctor("false".into(), Vec::new()))
         .extend("nil", Value::Ctor("nil".into(), Vec::new()))
-        .extend("cons", Value::Prim(rc::Rc::new(Box::new(cons_prim))))
+        .extend("cons", Value::Ctor("cons".into(), Vec::new()))
         .extend("unit", Value::Ctor("unit".into(), Vec::new()))
-        .extend("pair", Value::Prim(rc::Rc::new(Box::new(pair_prim))))
-        .extend("show", Value::Prim(rc::Rc::new(Box::new(show_prim))))
+        .extend("pair", Value::Ctor("pair".into(), Vec::new()))
 }
 
 pub fn builtins_type_ctx() -> TypeContext {
@@ -105,35 +105,6 @@ pub fn builtins_type_ctx() -> TypeContext {
         .extend("false", TypeNode::Atom("Bool".to_string()).into())
         .extend("unit", TypeNode::Atom("Unit".to_string()).into())
         .extend("show", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Str".to_string()).into()).into())
-}
-
-fn succ_prim(vs: Vec<Value>) -> Value {
-    assert_eq!(vs.len(), 1, "succ must have exactly one argument");
-    let v = vs[0].clone();
-    match &v {
-        Value::Ctor(tag, _) => {
-            if tag == "zero" {
-                Value::Ctor("succ".into(), vec![Value::Ctor("zero".into(), vec![])])
-            } else if tag == "succ" {
-                Value::Ctor("succ".into(), vec![v.clone()])
-            } else {
-                panic!("Invalid thing to succ: {:?}", &v)
-            }
-        },
-        other => panic!(format!("Couldn't succ {:?}", other)),
-    }
-}
-
-fn cons_prim(vs: Vec<Value>) -> Value {
-    let head = vs[0].clone();
-    let tail = vs[1].clone();
-    Value::Ctor("cons".into(), vec![head, tail])
-}
-
-fn pair_prim(vs: Vec<Value>) -> Value {
-    let fst = vs[0].clone();
-    let snd = vs[1].clone();
-    Value::Ctor("pair".into(), vec![fst, snd])
 }
 
 fn println_prim(vs: Vec<Value>) -> Value {
