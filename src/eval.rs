@@ -85,7 +85,7 @@ impl Runtime {
             let ast::Import(name) = import;
 
             let mut import_filename = name.to_string();
-            import_filename.extend(".ql".chars());
+            import_filename.push_str(".ql");
             let import_filename = &std::path::Path::new(&import_filename);
 
             self.load_module(import_filename, basedir, false);
@@ -290,7 +290,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
                 Value::Ctor(tag, contents) => {
                     let ast::MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
 
-                    let bind_names: Vec<String> = pat[1..].into_iter().map(|name| name.clone()).collect();
+                    let bind_names: Vec<String> = pat[1..].to_vec();
                     let bind_values: Vec<Value> = contents.clone();
                     let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
 

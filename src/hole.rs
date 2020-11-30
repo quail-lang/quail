@@ -72,17 +72,17 @@ fn introduce_hole(hole_info: &HoleInfo) {
     match &hole_info.name {
         None => {
             println!("Encountered hole: #{}", hole_info.hole_id);
-            println!("");
+            println!();
         }
         Some(name) => {
             println!("Encountered hole: {}", name);
-            println!("");
+            println!();
         }
     }
 
     if let Some(contents_string) = &hole_info.contents {
         println!("    Note: {:?}", contents_string);
-        println!("");
+        println!();
     }
 
 }
@@ -92,7 +92,7 @@ fn show_bindings(ctx: &Context) {
     for (name, value) in ctx.bindings().into_iter() {
         println!("        {} = {:?}", name, &value);
     }
-    println!("");
+    println!();
 }
 
 fn show_globals(runtime: &Runtime) {
@@ -101,12 +101,12 @@ fn show_globals(runtime: &Runtime) {
         let ast::Def(name, _) = definition;
         println!("        {}", &name);
     }
-    println!("");
+    println!();
 }
 
 fn parse_command(line: &str) -> Option<Command> {
-    let parts: Vec<String> = line.split(" ").map(|s| s.to_string()).collect();
-    if parts.len() == 0 {
+    let parts: Vec<String> = line.split(' ').map(|s| s.to_string()).collect();
+    if parts.is_empty() {
         None
     } else {
         let command_name = &parts[0];

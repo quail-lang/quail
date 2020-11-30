@@ -198,7 +198,7 @@ impl Parser {
         let (binding_name, var_names) = idents.split_first().unwrap();
         self.consume_expect(Token::Equals)?;
         let mut body = self.parse_term()?;
-        for var_name in var_names.into_iter().rev() {
+        for var_name in var_names.iter().rev() {
             body = ast::TermNode::Lam(var_name.to_string(), body).into();
         }
         Ok(ast::Def(binding_name.to_string(), body))

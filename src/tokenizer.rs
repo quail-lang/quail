@@ -55,10 +55,7 @@ impl Tokenizer {
                 let token = single_char_tokens.get(&head_char).unwrap().clone();
                 tokens.push(token);
                 self.consume();
-            } /* else if head_char.is_ascii_digit() {
-                let token = self.tokenize_literal();
-                tokens.push(token);
-            } */ else if head_char.is_ascii_alphabetic() {
+            } else if head_char.is_ascii_alphabetic() {
                 let token = self.tokenize_identifier();
                 tokens.push(token);
             } else if head_char == '#' {

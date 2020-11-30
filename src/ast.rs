@@ -71,7 +71,7 @@ impl HoleInfo {
 
 pub type HoleId = usize;
 
-pub fn find_matching_arm(tag: &CtorTag, match_arms: &Vec<MatchArm>) -> MatchArm {
+pub fn find_matching_arm(tag: &CtorTag, match_arms: &[MatchArm]) -> MatchArm {
     for match_arm in match_arms {
         let MatchArm(pat, _body) = match_arm;
         if pat[0] == *tag {
