@@ -24,11 +24,11 @@ pub enum Token {
 pub struct Tokenizer {
     input: Vec<char>,
     cur: usize,
-    loc: Location,
+    loc: Loc,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Location {
+pub struct Loc {
     pub path: Option<PathBuf>,
 
     // Both line and col are zero-based, so be mindful when printing!
@@ -43,7 +43,7 @@ impl Tokenizer {
         Tokenizer {
             input: input.chars().collect(),
             cur: 0,
-            loc: Location::new(None),
+            loc: Loc::new(None),
         }
     }
 
@@ -240,9 +240,9 @@ impl Tokenizer {
     }
 }
 
-impl Location {
+impl Loc {
     fn new(source: Option<&Path>) -> Self {
-        Location {
+        Loc {
             path: source.map(|p| p.to_path_buf()),
             line: 0,
             col: 0,
