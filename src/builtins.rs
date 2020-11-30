@@ -24,7 +24,17 @@ pub struct TypeDef {
     pub ctor_types: HashMap<Tag, Type>,
 }
 
+///
+/// Inductive Types consist of a name (such as `Nat`) and a list of constructor tags
+/// (`zero` and `succ`) together with their types (`Nat` and `Nat -> Nat`).
+///
 impl TypeDef {
+    ///
+    /// Creates a new InductiveTypeDef from a name and a list of pairs (tagname, signature).
+    /// A signature means the types arguments to the constructor strung together (omitting
+    /// the return value, which is inferred to be the inductive type itself).. For example,
+    /// if our constructor is `cons`, we would include ("cons", ["Nat", "List"]).
+    ///
     pub fn new(name: &str, flavor: Flavor, ctor_signatures: &[(Tag, &[Type])]) -> Self {
         let mut ctor_types = HashMap::new();
         for (tag, typ) in ctor_signatures.into_iter().map(|(tag, sig)| (tag, ctor_type_from_signature(&name, &sig))) {
@@ -38,6 +48,9 @@ impl TypeDef {
         }
     }
 
+    ///
+    /// Create a value-level context containing the constructors for this inductive type.
+    ///
     pub fn ctor_context(&self) -> Context {
         let ctors: Vec<&Tag> = self.ctor_types.keys().collect();
         let mut ctx = Context::empty();
@@ -50,6 +63,9 @@ impl TypeDef {
         ctx
     }
 
+    ///
+    /// Create a type-level context containing the constructors for this inductive type.
+    ///
     pub fn ctor_type_context(&self) -> TypeContext {
         let ctor_types: Vec<(&Tag, &Type)> = self.ctor_types.iter().collect();
         let mut ctx = TypeContext::empty();
@@ -59,6 +75,9 @@ impl TypeDef {
         ctx
     }
 
+    ///
+    /// Return the list of tagnames for the inductive type.
+    ///
     pub fn ctor_tags(&self) -> Vec<Tag> {
         self.ctor_types.keys().cloned().collect()
     }
@@ -72,6 +91,9 @@ fn ctor_type_from_signature(name: &str, ctor_signature: &[Type]) -> Type {
     typ
 }
 
+///
+/// Returns a list of inductive typedefs which are considered "built-in" in Quail.
+///
 pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
     let nat_type = TypeDef::new(
         "Nat",
