@@ -47,7 +47,7 @@ impl Tokenizer {
         }
     }
 
-    pub(crate) fn tokenize(&mut self) -> Vec<Token> {
+    pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
 
         let single_char_tokens: HashMap<char, Token> = vec![
@@ -170,24 +170,6 @@ impl Tokenizer {
             None => None,
         }
     }
-
-    /*
-    fn tokenize_literal(&mut self) -> Token {
-        let first_digit = self.input[self.cur];
-        assert!(first_digit.is_ascii_digit());
-        let mut token_string = String::new();
-        token_string.push(first_digit);
-
-        let mut new_cur = self.cur + 1;
-        while new_cur < self.input.len() && self.input[new_cur].is_ascii_digit() {
-            token_string.push(self.input[new_cur]);
-            new_cur += 1;
-        }
-
-        self.cur = new_cur;
-        return Token::Lit(token_string.parse::<u64>().expect("Should be valid integer."));
-    }
-    */
 
     fn tokenize_identifier(&mut self) -> Token {
         let keywords: HashMap<String, Token> = vec![
