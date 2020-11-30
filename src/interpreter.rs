@@ -14,7 +14,11 @@ pub fn repl(runtime: &mut Runtime) {
     loop {
         match runtime.readline() {
             Ok(line) => {
-                if line.starts_with("import") {
+                let line = line.trim();
+
+                if line.is_empty() {
+                    ()
+                } else if line.starts_with("import") {
                     match parser::parse_import(None, &line) {
                         Ok(Import(module_name)) => {
                             match runtime.import(&module_name) {
