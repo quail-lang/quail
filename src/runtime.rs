@@ -213,6 +213,7 @@ impl Runtime {
                     .or_else(|| self.builtin_ctx.lookup(&x))
                     .expect(&format!("Unbound variable {:?}", &x))
             },
+            TermNode::StrLit(contents) => Value::Str(contents.to_string()),
             TermNode::Lam(x, body) => {
                 Value::Fun(x.clone(), body.clone(), ctx.clone())
             },

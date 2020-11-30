@@ -28,6 +28,7 @@ pub enum TermNode {
     Match(Term, Vec<MatchArm>),
     Hole(HoleInfo),
     As(Term, Type),
+    StrLit(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

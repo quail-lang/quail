@@ -1,1 +1,1 @@
-def main : Top = println (show zero)
+def main : Top = println "Hello, world!"

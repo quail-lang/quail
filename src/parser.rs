@@ -291,7 +291,11 @@ impl Parser {
                 Token::Hole(loc, name, contents) => {
                     self.consume();
                     Ok(Some(TermNode::Hole(HoleInfo::new(self.generate_hole_id(), name, contents, loc)).into()))
-                }
+                },
+                Token::Str(_loc, contents) => {
+                    self.consume();
+                    Ok(Some(TermNode::StrLit(contents).into()))
+                },
                 _ => Ok(None),
             },
             None => Ok(None),

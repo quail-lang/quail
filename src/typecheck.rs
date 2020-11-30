@@ -57,6 +57,7 @@ pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
             Err("Can't infer type of match statements. (Yet?)".to_string())
         },
         TermNode::Hole(_hole_info) => Err("Can't infer type of a hole.".to_string()),
+        TermNode::StrLit(_contents) => { dbg!(); Ok(TypeNode::Atom("Str".to_string()).into())},
         TermNode::As(term, typ) => {
             check_type(term.clone(), ctx, inductive_typedefs, typ.clone())?;
             Ok(typ.clone())
@@ -90,6 +91,13 @@ pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
                 Ok(())
             } else {
                 Err(format!("Type mismatch during application: {:?} vs {:?}", &inferred_typ, &typ))
+            }
+        },
+        TermNode::StrLit(_contents) => {
+            if typ == TypeNode::Atom("Str".to_string()).into() {
+                Ok(())
+            } else {
+                Err(format!("Type of string literal can't be {:?}", &typ))
             }
         },
         TermNode::Let(x, v, body) => {

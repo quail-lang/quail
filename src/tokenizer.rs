@@ -23,6 +23,7 @@ pub enum Token {
     Import(Loc),
     Colon(Loc),
     As(Loc),
+    Str(Loc, String),
 }
 
 pub struct Tokenizer {
@@ -94,6 +95,8 @@ impl Tokenizer {
                     Ok(Some(Token::Colon(loc)))
                 } else if head_char == '?' {
                     Ok(Some(self.tokenize_hole()?))
+                } else if head_char == '"' {
+                    Ok(Some(self.tokenize_str()?))
                 } else if head_char == '-' {
                     match self.peek_ahead(1) {
                         Some('>') => {
@@ -173,6 +176,29 @@ impl Tokenizer {
         } else {
             Ok(Token::Hole(loc, name, None))
         }
+    }
+
+    fn tokenize_str(&mut self) -> Result<Token, TokenizeErr> {
+        #![allow(irrefutable_let_patterns)]
+        let loc = self.loc.clone();
+        assert_eq!(self.consume(), Some('"'));
+
+        let mut buffer = String::new();
+
+        while let consume_char = self.consume() {
+            match consume_char {
+                None => return Err("Expected \" but found end of file. Good luck!".to_string()),
+                Some(chr) => {
+                    if chr == '"' {
+                        break;
+                    } else {
+                        buffer.push(chr);
+                    }
+                },
+            }
+        }
+
+        Ok(Token::Str(loc, buffer))
     }
 
     fn tokenize_identifier(&mut self) -> Result<Token, TokenizeErr> {
