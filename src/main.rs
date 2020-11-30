@@ -5,6 +5,7 @@ pub mod runtime;
 pub mod typecheck;
 pub mod hole;
 pub mod builtins;
+pub mod interpreter;
 
 pub mod tests;
 
@@ -23,6 +24,8 @@ fn main() {
     match filename {
         None => {
             println!("{}", include_str!("../assets/quail.txt"));
+            let mut runtime = runtime::Runtime::new();
+            interpreter::repl(&mut runtime);
         },
         Some(filename) => {
             let mut runtime = runtime::Runtime::new();
