@@ -440,7 +440,7 @@ impl Parser {
 
 pub fn parse_term(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<(Term, u64), ParseErr> {
     let mut toker = Tokenizer::new(source, input);
-    let tokens = toker.tokenize().expect("Error when tokenizing");
+    let tokens = toker.tokenize()?;
 
     let mut parser = Parser::new(starting_hole_id, tokens);
 
@@ -450,7 +450,7 @@ pub fn parse_term(starting_hole_id: HoleId, source: Option<&Path>, input: &str) 
 
 pub fn parse_module(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<(Module, u64), ParseErr> {
     let mut toker = Tokenizer::new(source, input);
-    let tokens = toker.tokenize().expect("Error when tokenizing");
+    let tokens = toker.tokenize()?;
 
     let mut parser = Parser::new(starting_hole_id, tokens);
 
