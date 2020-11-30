@@ -179,7 +179,14 @@ impl Tokenizer {
         token_string.push(first_char);
 
         let mut new_cur = self.cur + 1;
-        while new_cur < self.input.len() && self.input[new_cur].is_ascii_alphabetic() {
+        while new_cur < self.input.len() &&
+            (self.input[new_cur].is_ascii_alphabetic() || self.input[new_cur] == '_') {
+            token_string.push(self.input[new_cur]);
+            new_cur += 1;
+        }
+
+        // Allow primes ' at the end of identifiers.
+        while new_cur < self.input.len() && self.input[new_cur] == '\'' {
             token_string.push(self.input[new_cur]);
             new_cur += 1;
         }
