@@ -38,6 +38,8 @@ pub struct Location {
     pub col: usize,
 }
 
+type TokenizeErr = String;
+
 impl Tokenizer {
     pub fn new(input: &str) -> Self {
         Tokenizer {
@@ -47,7 +49,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn tokenize(&mut self) -> Vec<Token> {
+    pub fn tokenize(&mut self) -> Result<Vec<Token>, TokenizeErr> {
         let mut tokens = Vec::new();
 
         let single_char_tokens: HashMap<char, Token> = vec![
@@ -67,12 +69,12 @@ impl Tokenizer {
                 tokens.push(token);
                 self.consume();
             } else if head_char.is_ascii_alphabetic() {
-                let token = self.tokenize_identifier();
+                let token = self.tokenize_identifier()?;
                 tokens.push(token);
             } else if head_char == '#' {
                 self.consume_comment();
             } else if head_char == '?' {
-                tokens.push(self.tokenize_hole());
+                tokens.push(self.tokenize_hole()?);
             } else if head_char == '=' {
                 match self.peek_ahead(1) {
                     Some('>') => {
@@ -87,10 +89,10 @@ impl Tokenizer {
                     None => tokens.push(Token::Equals),
                 }
             } else {
-                panic!("Unexpected character while parsing: {}", head_char);
+                return Err(format!("Unexpected character while parsing: {}", head_char));
             }
         }
-        tokens
+        Ok(tokens)
     }
 
     fn consume_comment(&mut self) {
@@ -101,21 +103,22 @@ impl Tokenizer {
         }
     }
 
-    fn tokenize_hole(&mut self) -> Token {
+    fn tokenize_hole(&mut self) -> Result<Token, TokenizeErr> {
         assert_eq!(self.consume(), Some('?'));
 
         let peek_char : char;
         let name: Option<String>;
 
         match self.peek() {
-            None => return Token::Hole(None, None),
+            None => return Ok(Token::Hole(None, None)),
             Some(chr) => peek_char = chr,
         }
 
         if peek_char.is_ascii_alphabetic() {
-            if let Token::Ident(token_name) = self.tokenize_identifier() {
+            if let Token::Ident(token_name) = self.tokenize_identifier()? {
                 name = Some(token_name);
             } else {
+                // TODO explain why
                 unreachable!();
             }
         } else {
@@ -141,12 +144,12 @@ impl Tokenizer {
             }
 
             if level != 0 {
-                panic!("Mismatch curly braces.")
+                Err("Mismatch curly braces.".to_string())
             } else {
-                Token::Hole(name, Some(contents))
+                Ok(Token::Hole(name, Some(contents)))
             }
         } else {
-            Token::Hole(name, None)
+            Ok(Token::Hole(name, None))
         }
     }
 
@@ -171,7 +174,7 @@ impl Tokenizer {
         }
     }
 
-    fn tokenize_identifier(&mut self) -> Token {
+    fn tokenize_identifier(&mut self) -> Result<Token, TokenizeErr> {
         let keywords: HashMap<String, Token> = vec![
             ("fun".to_string(), Token::Lambda),
             ("let".to_string(), Token::Let),
@@ -199,10 +202,12 @@ impl Tokenizer {
             new_cur += 1;
         }
 
+        // TODO new_cur is really bad because it overwrites self.cur
+        // without respect to the position information.
         self.cur = new_cur;
         match keywords.get(&token_string) {
-            Some(token) => token.clone(),
-            None => Token::Ident(token_string)
+            Some(token) => Ok(token.clone()),
+            None => Ok(Token::Ident(token_string))
         }
     }
 }

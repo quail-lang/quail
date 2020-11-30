@@ -239,7 +239,7 @@ impl Parser {
 
 pub fn parse_term(input: &str) -> Result<Term, ParseErr> {
     let mut toker = Tokenizer::new(input);
-    let tokens = toker.tokenize();
+    let tokens = toker.tokenize().expect("Error when tokenizing");
 
     let mut parser = Parser::new(tokens);
 
@@ -248,7 +248,7 @@ pub fn parse_term(input: &str) -> Result<Term, ParseErr> {
 
 pub fn parse_module(input: &str) -> Result<Module, ParseErr> {
     let mut toker = Tokenizer::new(input);
-    let tokens = toker.tokenize();
+    let tokens = toker.tokenize().expect("Error when tokenizing");
 
     let mut parser = Parser::new(tokens);
 
