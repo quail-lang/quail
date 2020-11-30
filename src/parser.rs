@@ -5,7 +5,6 @@ use ast::HoleId;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     Ident(String),
-    Lit(u64),
     Lambda,
     Let,
     Def,
@@ -33,15 +32,6 @@ pub struct Tokenizer {
 mod test {
     use super::*;
     #[test]
-    fn tokenize_ident_then_lit() {
-        let mut toker = Tokenizer::new("abcd 123");
-        assert_eq!(
-            toker.tokenize(),
-            vec![Token::Ident("abcd".to_string()), Token::Lit(123)]
-        );
-    }
-
-    #[test]
     fn tokenize_empty_string() {
         let mut toker = Tokenizer::new("");
         assert_eq!(
@@ -65,23 +55,6 @@ mod test {
         assert_eq!(
             toker.tokenize(),
             vec![Token::Lambda, Token::Ident("x".to_string()), Token::FatArrow, Token::Ident("x".to_string())]
-        );
-    }
-
-    #[test]
-    fn tokenize_test_c() {
-        let mut toker = Tokenizer::new("let f = succ in f 2");
-        assert_eq!(
-            toker.tokenize(),
-            vec![
-                Token::Let,
-                Token::Ident("f".to_string()),
-                Token::Equals,
-                Token::Ident("succ".to_string()),
-                Token::In,
-                Token::Ident("f".to_string()),
-                Token::Lit(2),
-            ]
         );
     }
 }
@@ -114,10 +87,10 @@ impl Tokenizer {
                 let token = single_char_tokens.get(&head_char).unwrap().clone();
                 tokens.push(token);
                 self.consume();
-            } else if head_char.is_ascii_digit() {
+            } /* else if head_char.is_ascii_digit() {
                 let token = self.tokenize_literal();
                 tokens.push(token);
-            } else if head_char.is_ascii_alphabetic() {
+            } */ else if head_char.is_ascii_alphabetic() {
                 let token = self.tokenize_identifier();
                 tokens.push(token);
             } else if head_char == '#' {
@@ -203,6 +176,7 @@ impl Tokenizer {
         }
     }
 
+    /*
     fn tokenize_literal(&mut self) -> Token {
         let first_digit = self.input[self.cur];
         assert!(first_digit.is_ascii_digit());
@@ -218,6 +192,7 @@ impl Tokenizer {
         self.cur = new_cur;
         return Token::Lit(token_string.parse::<u64>().expect("Should be valid integer."));
     }
+    */
 
     fn tokenize_identifier(&mut self) -> Token {
         let keywords: HashMap<String, Token> = vec![
