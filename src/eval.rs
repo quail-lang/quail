@@ -64,8 +64,8 @@ impl Runtime {
         use std::fs;
         use std::io::Read;
         let mut module_text = String::new();
-        fs::File::open(filepath)
-            .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)))
+        fs::File::open(&filepath)
+            .unwrap_or_else(|e| panic!(format!("There was an error when opening {:?}: {:?}", &filepath, e)))
             .read_to_string(&mut module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
 
