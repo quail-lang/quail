@@ -6,7 +6,15 @@ edition = "2018"
 description = "The Quail Programming Language"
 license = "BSD-2-Clause"
 
+# https://stackoverflow.com/questions/51785457/how-can-i-specify-which-crate-cargo-run-runs-by-default-in-the-root-of-a-cargo
+default-run = "quail"
+
 [dependencies]
 rustyline = "5.0.5"
 dirs = "2.0.1"
 structopt = "0.3.5"
+
+# https://stackoverflow.com/questions/36604010/how-can-i-build-multiple-binaries-with-cargo
+[[bin]]
+name = "quail"
+path = "src/bin/quail.rs"

@@ -1,14 +1,5 @@
-pub mod tokenizer;
-pub mod parser;
-pub mod ast;
-pub mod runtime;
-pub mod typecheck;
-pub mod builtins;
-pub mod interpreter;
-pub mod types;
-pub mod typecontext;
-
-pub mod tests;
+use quail::runtime;
+use quail::interpreter;
 
 use structopt::StructOpt;
 
@@ -24,7 +15,7 @@ fn main() -> Result<(), runtime::RuntimeError> {
     let filename = opt.filename;
     match filename {
         None => {
-            println!("{}", include_str!("../assets/quail.txt"));
+            println!("{}", include_str!("../../assets/quail.txt"));
             let mut interpreter = interpreter::Interpreter::new();
             interpreter::repl(&mut interpreter);
         },
