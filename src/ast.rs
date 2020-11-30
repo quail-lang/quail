@@ -49,9 +49,11 @@ pub type Pattern = Vec<String>;
 #[derive(Clone)]
 pub enum Value {
     Ctor(Tag, Vec<Value>),
+    CoCtor(Tag, Vec<Value>),
     Fun(String, Term, Context),
     Prim(rc::Rc<Box<Fn(Vec<Value>) -> Value>>),
     Str(String),
+    Thunk(Term, Context),
 }
 
 pub type Tag = String;
@@ -161,9 +163,17 @@ impl fmt::Debug for Value {
                 }
                 Ok(())
             },
+            Value::CoCtor(tag, contents) => {
+                write!(f, "{}", &tag)?;
+                for value in contents {
+                    write!(f, " ({:?})", value)?;
+                }
+                Ok(())
+            },
             Value::Str(s) => write!(f, "{}", s),
             Value::Fun(_, _, _) => write!(f, "<fun>"),
             Value::Prim(_) => write!(f, "<prim>"),
+            Value::Thunk(_, _) => write!(f, "<thunk>"),
         }
     }
 }
