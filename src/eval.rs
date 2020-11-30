@@ -11,20 +11,41 @@ use crate::ast::Value;
 use crate::ast::Context;
 use ast::HoleId;
 
-#[derive(Clone, Debug)]
+use rustyline::error::ReadlineError;
+use dirs;
+
+#[derive(Debug)]
 pub struct Runtime {
     pub imports: Vec<String>,
     pub definitions: Vec<ast::Def>,
     pub holes: HashMap<HoleId, Value>,
+    pub readline_file: String,
+    pub editor: rustyline::Editor<()>,
 }
 
 impl Runtime {
     pub fn load(filepath: impl AsRef<std::path::Path>) -> Self {
+        let readline_file = dirs::config_dir()
+            .expect("User does not have a home directory??")
+            .join("quail").join("history");
+
+        println!("Loading readline history: {:?}", &readline_file);
+        if !readline_file.exists() {
+            std::fs::create_dir_all(&readline_file.parent().unwrap()).unwrap();
+            std::fs::File::create(&readline_file).expect("Could not create readline file");
+        }
+
         let mut runtime = Runtime {
             imports: vec![],
             definitions: vec![],
             holes: HashMap::new(),
+            readline_file: readline_file.to_string_lossy().to_string(),
+            editor: rustyline::Editor::new(),
         };
+
+        if runtime.editor.load_history(&runtime.readline_file).is_err() {
+            eprintln!("Could not read from {:?} for readline history.", &readline_file);
+        }
 
         let basedir = std::path::Path::new(filepath.as_ref().parent().expect("Invalid path"));
         let filename = std::path::Path::new(filepath.as_ref().file_name().expect("Invalid path"));
@@ -81,6 +102,13 @@ impl Runtime {
     pub fn exec(&mut self) {
         let ast::Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
         eval(main_body, prelude_ctx(), self);
+    }
+
+    fn readline(&mut self) -> Result<String, ReadlineError> {
+        let line = self.editor.readline("> ")?;
+        self.editor.add_history_entry(line.as_str());
+        self.editor.save_history(&self.readline_file)?;
+        Ok(line)
     }
 }
 
@@ -189,7 +217,7 @@ pub fn prelude_ctx() -> Context {
         .extend(&"show".into(), Value::Prim(rc::Rc::new(Box::new(show_prim))))
 }
 
-fn apply(func: Value, args: Vec<Value>, runtime: &Runtime) -> Value {
+fn apply(func: Value, args: Vec<Value>, runtime: &mut Runtime) -> Value {
     match &func {
         Value::Fun(x, body, local_ctx) => {
             match args.clone().split_first() {
@@ -213,7 +241,7 @@ fn apply(func: Value, args: Vec<Value>, runtime: &Runtime) -> Value {
     }
 }
 
-pub fn eval(t: Term, ctx: Context, runtime: &Runtime) -> Value {
+pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
     use crate::ast::TermNode::*;
     match t.as_ref() {
         Var(x) => {
@@ -258,7 +286,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &Runtime) -> Value {
     }
 }
 
-fn eval_hole(hole_id: HoleId, ctx: Context, runtime: &Runtime, contents: &str) -> Value {
+fn eval_hole(hole_id: HoleId, ctx: Context, runtime: &mut Runtime, contents: &str) -> Value {
     println!("Encountered hole #{}", hole_id);
     println!("");
     if contents != "" {
@@ -280,11 +308,8 @@ fn eval_hole(hole_id: HoleId, ctx: Context, runtime: &Runtime, contents: &str) -
 
     println!("");
 
-    let mut rl = rustyline::Editor::<()>::new();
-    use rustyline::error::ReadlineError;
-
     loop {
-        match rl.readline("> ") {
+        match runtime.readline() {
             Ok(term_text) => {
                 match parser::parse_term(term_text) {
                     Ok(term) => {
