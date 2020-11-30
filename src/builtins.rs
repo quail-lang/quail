@@ -4,6 +4,8 @@ use crate::ast;
 
 use ast::Value;
 use ast::Context;
+use crate::typecheck::TypeNode;
+use crate::typecheck::TypeContext;
 
 pub fn builtins_ctx() -> Context {
     Context::empty()
@@ -17,6 +19,16 @@ pub fn builtins_ctx() -> Context {
         .extend("unit", Value::Ctor("unit".into(), Vec::new()))
         .extend("pair", Value::Prim(rc::Rc::new(Box::new(pair_prim))))
         .extend("show", Value::Prim(rc::Rc::new(Box::new(show_prim))))
+}
+
+pub fn builtins_type_ctx() -> TypeContext {
+    TypeContext::empty()
+        .extend("println", TypeNode::Atom("Unit".to_string()).into())
+        .extend("zero", TypeNode::Atom("Nat".to_string()).into())
+        .extend("succ", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Nat".to_string()).into()).into())
+        .extend("true", TypeNode::Atom("Bool".to_string()).into())
+        .extend("false", TypeNode::Atom("Bool".to_string()).into())
+        .extend("unit", TypeNode::Atom("Unit".to_string()).into())
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {

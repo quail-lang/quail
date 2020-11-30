@@ -16,15 +16,6 @@ pub struct Def(pub String, pub Term);
 pub struct Import(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type(pub rc::Rc<TypeNode>);
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeNode {
-    Atom(String),
-    Arrow(Type, Type),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Term(pub rc::Rc<TermNode>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]

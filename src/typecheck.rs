@@ -1,16 +1,153 @@
-/*
-use super::ast;
-use super::ast::Type;
+use std::rc;
+
 use super::ast::Term;
-use super::ast::PrimFn;
+use super::ast::TermNode;
 
-use std::collections::HashMap;
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Type(pub rc::Rc<TypeNode>);
 
-pub fn type_of(t: Term) -> Type {
-    let ctx = HashMap::new();
-    type_of_ctx(t, ctx)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TypeNode {
+    Atom(String),
+    Arrow(Type, Type),
 }
 
+#[derive(Debug)]
+struct TypeContextNode(Vec<(String, Type)>);
+
+#[derive(Debug, Clone)]
+pub struct TypeContext(rc::Rc<TypeContextNode>);
+
+pub type TypeErr = String;
+
+pub fn infer_type(t: Term, ctx: TypeContext) -> Result<Type, TypeErr> {
+    match t.as_ref() {
+        TermNode::Var(x) => {
+            match ctx.lookup(x) {
+                None => Err(format!("Variable {} not found in context", &x)),
+                Some(typ) => Ok(typ),
+            }
+        },
+        TermNode::Lam(_y, _body) => Err("Can't infer type of functions.".to_string()),
+        TermNode::App(f, vs) => {
+            let mut result = infer_type(f.clone(), ctx.clone())?;
+
+            for v in vs.iter() {
+                match result.as_ref() {
+                    TypeNode::Atom(_) => return Err("Expected function type.".to_string()),
+                    TypeNode::Arrow(dom, cod) => {
+                        check_type(v.clone(), ctx.clone(), dom.clone())?;
+                        result = cod.clone();
+                    },
+                }
+            }
+            Ok(result)
+        },
+        TermNode::Let(x, v, body) => {
+            let x_typ = infer_type(v.clone(), ctx.clone())?;
+            infer_type(body.clone(), ctx.extend(x, x_typ))
+        },
+        TermNode::Match(_t, _match_arms) => {
+            Err("Can't infer type of match statements. (Yet?)".to_string())
+        },
+        TermNode::Hole(_hole_info) => Err("Can't infer type of a hole.".to_string()),
+    }
+}
+
+pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
+    match t.as_ref() {
+        TermNode::Var(x) => {
+            match ctx.lookup(&x) {
+                Some(x_typ) => {
+                    if x_typ == typ {
+                        Ok(())
+                    } else {
+                        Err(format!("Type of {} does not match context", x))
+                    }
+                },
+                None => Err(format!("{} does not appear in context.", x)),
+            }
+        },
+        TermNode::Lam(x, body) => {
+            match typ.as_ref() {
+                TypeNode::Atom(_) => Err("Functions need function types.".to_string()),
+                TypeNode::Arrow(dom, cod) => check_type(body.clone(), ctx.extend(x, dom.clone()), cod.clone()),
+            }
+        },
+        TermNode::App(_f, _vs) => {
+            let inferred_typ = infer_type(t.clone(), ctx)?;
+            if &inferred_typ == &typ {
+                Ok(())
+            } else {
+                Err(format!("Type mismatch: {:?} vs {:?}", &inferred_typ, &typ))
+            }
+        },
+        TermNode::Let(x, v, body) => {
+            let x_typ = infer_type(v.clone(), ctx.clone())?;
+            check_type(body.clone(), ctx.extend(x, x_typ), typ)
+        },
+        TermNode::Match(_t, _match_arms) => {
+            unimplemented!()
+        },
+        TermNode::Hole(_hole_info) => Ok(()),
+    }
+}
+
+
+impl From<TypeNode> for Type {
+    fn from(tn: TypeNode) -> Self {
+        Type(rc::Rc::new(tn))
+    }
+}
+
+impl TypeContext {
+    pub fn empty() -> Self {
+        TypeContext(rc::Rc::new(TypeContextNode(Vec::new())))
+    }
+
+    pub fn lookup(&self, x: &str) -> Option<Type> {
+        let TypeContext(rc_ctx_node) = self;
+        let TypeContextNode(var_typ_list) = rc_ctx_node.as_ref();
+        for (y, typ) in var_typ_list.iter().rev() {
+            if x == y {
+                return Some(typ.clone());
+            }
+        }
+        None
+    }
+
+    pub fn extend(&self, x: &str, t: Type) -> TypeContext {
+        let TypeContext(rc_ctx_node) = self;
+        let TypeContextNode(var_val_list) = rc_ctx_node.as_ref();
+        let mut extended_var_val_list = var_val_list.clone();
+        extended_var_val_list.push((x.to_string(), t.clone()));
+        TypeContext(rc::Rc::new(TypeContextNode(extended_var_val_list)))
+    }
+
+    pub fn extend_many(&self, bindings: &[(String, Type)]) -> TypeContext {
+        let mut ctx = self.clone();
+        for (name, value) in bindings.iter() {
+            ctx = ctx.extend(name, value.clone());
+        }
+        ctx
+    }
+
+    pub fn bindings(&self) -> Vec<(String, Type)> {
+        let TypeContext(context_node_rc) = self;
+        let TypeContextNode(bindings) = context_node_rc.as_ref();
+        bindings.clone()
+    }
+}
+
+impl AsRef<TypeNode> for Type {
+    fn as_ref(&self) -> &TypeNode {
+        use std::borrow::Borrow;
+        let Type(rc_tn) = self;
+        rc_tn.borrow()
+    }
+}
+
+/*
 fn type_of_ctx(t: Term, ctx: HashMap<String, Type>) -> Type {
     match t.as_ref() {
         ast::TermNode::Var(y) => {
