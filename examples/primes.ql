@@ -35,6 +35,6 @@ def repeat_iter f n k =
 def print_prime n =
     match is_prime n
         with false => zero
-        with true => println n
+        with true => println (show n)
 
 def main = repeat print_prime sixteen

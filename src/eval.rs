@@ -114,10 +114,41 @@ fn pair_prim(vs: Vec<Value>) -> Value {
 }
 
 fn println_prim(vs: Vec<Value>) -> Value {
-    assert_eq!(vs.len(), 1, "succ must have exactly one argument");
+    assert_eq!(vs.len(), 1, "println must have exactly one argument");
     let v = vs[0].clone();
     println!("{:?}", v);
-    v
+    Value::Ctor("unit".into(), Vec::new())
+}
+
+fn nat_to_u64(v: Value) -> u64 {
+    match v {
+        Value::Ctor(tag, contents) => {
+            if tag == "zero" {
+                0
+            } else if tag == "succ" {
+                let inner_value = &contents[0];
+                1 + nat_to_u64(inner_value.clone())
+            } else {
+                 panic!("This isn't a nat.")
+            }
+        },
+        _ => panic!("This isn't a nat."),
+    }
+}
+
+fn show_prim(vs: Vec<Value>) -> Value {
+    assert_eq!(vs.len(), 1, "show must have exactly one argument");
+    let v = vs[0].clone();
+    match &v {
+        Value::Ctor(tag, _) => {
+            if tag == "zero" || tag == "succ" {
+                ast::Value::Str(format!("{}", nat_to_u64(v)))
+            } else {
+                ast::Value::Str(format!("{:?}", v))
+            }
+        }
+        _ => panic!("Can't show this {:?}", &v),
+    }
 }
 
 pub fn prelude_ctx() -> Context {
@@ -131,6 +162,7 @@ pub fn prelude_ctx() -> Context {
         .extend(&"cons".into(), Value::Prim(rc::Rc::new(Box::new(cons_prim))))
         .extend(&"unit".into(), Value::Ctor("unit".into(), Vec::new()))
         .extend(&"pair".into(), Value::Prim(rc::Rc::new(Box::new(pair_prim))))
+        .extend(&"show".into(), Value::Prim(rc::Rc::new(Box::new(show_prim))))
 }
 
 fn apply(func: Value, args: Vec<Value>, runtime: &Runtime) -> Value {
@@ -153,6 +185,7 @@ fn apply(func: Value, args: Vec<Value>, runtime: &Runtime) -> Value {
         Value::Prim(prim) => {
             prim(args)
         },
+        _ => panic!(format!("Applied arguments to non-function {:?}", func)),
     }
 }
 

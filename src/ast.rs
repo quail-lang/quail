@@ -74,6 +74,7 @@ pub enum Value {
     Ctor(CtorTag, Vec<Value>),
     Fun(String, Term, Context),
     Prim(rc::Rc<Box<Fn(Vec<Value>) -> Value>>),
+    Str(String),
 }
 
 pub type CtorTag = String;
@@ -88,6 +89,7 @@ impl fmt::Debug for Value {
                 }
                 Ok(())
             },
+            Value::Str(s) => write!(f, "{}", s),
             Value::Fun(_, _, _) => write!(f, "<fun>"),
             Value::Prim(_) => write!(f, "<prim>"),
         }

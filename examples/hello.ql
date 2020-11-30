@@ -1,2 +1,1 @@
-def id x = x
-def main = println (id zero)
+def main = println (show zero)

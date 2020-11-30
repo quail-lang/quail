@@ -16,4 +16,4 @@ def fib n =
                 with succ n'' => fib_iter n'' zero (succ zero)
             )
 
-def main = map (fun n => println (fib n)) (up_to ten)
+def main = map (fun n => println (show (fib n))) (up_to (add three ten))
