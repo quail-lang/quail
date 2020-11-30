@@ -246,12 +246,34 @@ impl Parser {
         }
     }
 
+    fn consume_identifier_plus(&mut self) -> Result<Vec<String>, ParseErr> {
+        let mut idents = Vec::new();
+        while let Some(token) = self.peek() {
+            if let Token::Ident(name) = token {
+                idents.push(name);
+                self.consume();
+            } else {
+                break;
+            }
+        }
+        if idents.is_empty() {
+            Err("Expected identifier".into())
+        } else {
+            Ok(idents)
+        }
+    }
+
     fn parse_lambda(&mut self) -> Result<ast::Term, ParseErr> {
         self.consume_expect(Token::Lambda)?;
-        let bind_var = self.consume_identifier()?;
+        let bind_vars = self.consume_identifier_plus()?;
         self.consume_expect(Token::FatArrow)?;
         let body = self.parse_term()?;
-        Ok(ast::TermNode::Lam(bind_var, body).into())
+
+        let mut term = body;
+        for bind_var in bind_vars.into_iter().rev() {
+            term = ast::TermNode::Lam(bind_var, term).into();
+        }
+        Ok(term)
     }
 
     fn parse_term_part(&mut self) -> Result<Option<ast::Term>, ParseErr> {
