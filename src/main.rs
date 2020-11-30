@@ -4,6 +4,7 @@ pub mod ast;
 pub mod eval;
 pub mod typecheck;
 pub mod hole;
+pub mod builtins;
 
 pub mod tests;
 
