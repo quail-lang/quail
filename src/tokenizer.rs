@@ -179,6 +179,11 @@ impl Tokenizer {
     fn consume(&mut self) -> Option<char> {
         match self.peek() {
             Some(peek_char) => {
+                if peek_char == '\n' {
+                    self.loc.next_line();
+                } else {
+                    self.loc.next_col();
+                }
                 self.cur += 1;
                 Some(peek_char)
             },
@@ -196,27 +201,38 @@ impl Tokenizer {
             ("with".to_string(), Token::With),
             ("import".to_string(), Token::Import),
         ].iter().cloned().collect();
-        let first_char = self.input[self.cur];
-        assert!(first_char.is_ascii_alphabetic());
+
+        let mut first_char = '\0';
+        match self.peek() {
+            Some(chr) => {
+                self.consume();
+                first_char = chr;
+            },
+            None => assert!(first_char.is_ascii_alphabetic()),
+        }
+
         let mut token_string = String::new();
         token_string.push(first_char);
 
-        let mut new_cur = self.cur + 1;
-        while new_cur < self.input.len() &&
-            (self.input[new_cur].is_ascii_alphabetic() || self.input[new_cur] == '_') {
-            token_string.push(self.input[new_cur]);
-            new_cur += 1;
+        while let Some(peek_char) = self.peek() {
+            if peek_char.is_ascii_alphabetic() || peek_char == '_' {
+                self.consume();
+                token_string.push(peek_char);
+            } else {
+                break;
+            }
         }
 
         // Allow primes ' at the end of identifiers.
-        while new_cur < self.input.len() && self.input[new_cur] == '\'' {
-            token_string.push(self.input[new_cur]);
-            new_cur += 1;
+        while let Some(peek_char) = self.peek() {
+            if peek_char == '\'' {
+                self.consume();
+                token_string.push(peek_char);
+            } else {
+                break;
+            }
         }
 
-        // TODO new_cur is really bad because it overwrites self.cur
-        // without respect to the position information.
-        self.cur = new_cur;
         match keywords.get(&token_string) {
             Some(token) => Ok(token.clone()),
             None => Ok(Token::Ident(token_string))
