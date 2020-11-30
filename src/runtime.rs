@@ -143,6 +143,17 @@ impl Runtime {
         }
     }
 
+    pub fn define(&mut self, definition: &Def) {
+        let Def(name, typ, body) = definition;
+        let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(&name, typ.clone());
+        typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())
+            .expect("That wasn't well typed:");
+        self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
+
+        let body_value = self.eval(body.clone(), Context::empty());
+        self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
+    }
+
     pub fn next_hole_id(&self) -> HoleId {
         self.number_of_holes as HoleId
     }

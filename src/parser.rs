@@ -465,3 +465,11 @@ pub fn parse_import(source: Option<&Path>, input: &str) -> Result<Import, ParseE
     let mut parser = Parser::new(0 as HoleId, tokens);
     parser.parse_import()
 }
+
+pub fn parse_def(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<Def, ParseErr> {
+    let mut toker = Tokenizer::new(source, input);
+    let tokens = toker.tokenize()?;
+
+    let mut parser = Parser::new(starting_hole_id, tokens);
+    parser.parse_def()
+}
