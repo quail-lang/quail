@@ -7,6 +7,7 @@ use crate::parser;
 use crate::ast;
 use crate::hole;
 use crate::builtins;
+use crate::typecheck;
 
 use ast::Term;
 use ast::TermNode;
@@ -16,6 +17,7 @@ use ast::Context;
 use ast::HoleId;
 use ast::Import;
 use ast::MatchArm;
+use typecheck::TypeContext;
 
 #[derive(Debug)]
 pub struct Runtime {
@@ -25,7 +27,10 @@ pub struct Runtime {
     pub editor: rustyline::Editor<()>,
     pub number_of_holes: u64,
     pub definition_ctx: Context,
+    pub definition_type_ctx: TypeContext,
+
     pub builtin_ctx: Context,
+    pub builtin_type_ctx: TypeContext,
 }
 
 impl Runtime {
@@ -48,6 +53,8 @@ impl Runtime {
             number_of_holes: 0,
             definition_ctx: Context::empty(),
             builtin_ctx: builtins::builtins_ctx(),
+            definition_type_ctx: TypeContext::empty(),
+            builtin_type_ctx: builtins::builtins_type_ctx(),
         };
 
         if runtime.editor.load_history(&runtime.readline_file).is_err() {
@@ -91,10 +98,18 @@ impl Runtime {
         }
 
         for definition in module.definitions.iter() {
-            let Def(name, body) = definition;
+            println!("{:?}", &definition);
+            let Def(name, typ, body) = definition;
             if is_main || name != "main" {
+                let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(name, typ.clone());
+                typecheck::check_type(body.clone(), type_context, typ.clone())
+                    .expect("That wasn't well typed:");
+                self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
+
                 let body_value = self.eval(body.clone(), Context::empty());
                 self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
+
+                println!("{} : {:?}", &name, &typ);
             }
         }
     }
@@ -190,6 +205,7 @@ impl Runtime {
                 }
             },
             TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
+            TermNode::As(term, _typ) => self.eval(term.clone(), ctx),
         }
     }
 }

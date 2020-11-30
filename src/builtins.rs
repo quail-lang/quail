@@ -23,12 +23,16 @@ pub fn builtins_ctx() -> Context {
 
 pub fn builtins_type_ctx() -> TypeContext {
     TypeContext::empty()
-        .extend("println", TypeNode::Atom("Unit".to_string()).into())
+        .extend("println", TypeNode::Arrow(
+                TypeNode::Atom("Str".to_string()).into(),
+                TypeNode::Atom("Unit".to_string()).into(),
+        ).into())
         .extend("zero", TypeNode::Atom("Nat".to_string()).into())
         .extend("succ", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Nat".to_string()).into()).into())
         .extend("true", TypeNode::Atom("Bool".to_string()).into())
         .extend("false", TypeNode::Atom("Bool".to_string()).into())
         .extend("unit", TypeNode::Atom("Unit".to_string()).into())
+        .extend("show", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Str".to_string()).into()).into())
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {

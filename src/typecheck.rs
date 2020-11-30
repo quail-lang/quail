@@ -51,6 +51,10 @@ pub fn infer_type(t: Term, ctx: TypeContext) -> Result<Type, TypeErr> {
             Err("Can't infer type of match statements. (Yet?)".to_string())
         },
         TermNode::Hole(_hole_info) => Err("Can't infer type of a hole.".to_string()),
+        TermNode::As(term, typ) => {
+            check_type(term.clone(), ctx, typ.clone())?;
+            Ok(typ.clone())
+        },
     }
 }
 
@@ -70,7 +74,7 @@ pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
         },
         TermNode::Lam(x, body) => {
             match typ.as_ref() {
-                TypeNode::Atom(_) => Err("Functions need function types.".to_string()),
+                TypeNode::Atom(atom) => Err(format!("Functions need function types, but we got {}", atom)),
                 TypeNode::Arrow(dom, cod) => check_type(body.clone(), ctx.extend(x, dom.clone()), cod.clone()),
             }
         },
@@ -79,7 +83,7 @@ pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
             if &inferred_typ == &typ {
                 Ok(())
             } else {
-                Err(format!("Type mismatch: {:?} vs {:?}", &inferred_typ, &typ))
+                Err(format!("Type mismatch during application: {:?} vs {:?}", &inferred_typ, &typ))
             }
         },
         TermNode::Let(x, v, body) => {
@@ -90,6 +94,13 @@ pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
             unimplemented!()
         },
         TermNode::Hole(_hole_info) => Ok(()),
+        TermNode::As(term, as_typ) => {
+            if &typ == as_typ {
+                check_type(term.clone(), ctx, typ)
+            } else {
+                Err(format!("Type mismatch during ascription: {:?} vs {:?}", &as_typ, &typ))
+            }
+        },
     }
 }
 
@@ -130,6 +141,14 @@ impl TypeContext {
             ctx = ctx.extend(name, value.clone());
         }
         ctx
+    }
+
+    pub fn append(&self, ctx: TypeContext) -> TypeContext {
+        let mut result_ctx = self.clone();
+        for (name, value) in ctx.bindings().iter() {
+            result_ctx = result_ctx.extend(name, value.clone());
+        }
+        result_ctx
     }
 
     pub fn bindings(&self) -> Vec<(String, Type)> {

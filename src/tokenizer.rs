@@ -12,6 +12,7 @@ pub enum Token {
     Def(Loc),
     Equals(Loc),
     In(Loc),
+    Arrow(Loc),
     FatArrow(Loc),
     LeftParen(Loc),
     RightParen(Loc),
@@ -20,6 +21,8 @@ pub enum Token {
     Match(Loc),
     With(Loc),
     Import(Loc),
+    Colon(Loc),
+    As(Loc),
 }
 
 pub struct Tokenizer {
@@ -86,8 +89,20 @@ impl Tokenizer {
                 } else if head_char.is_ascii_alphabetic() {
                     let token = self.tokenize_identifier()?;
                     Ok(Some(token))
+                } else if head_char == ':' {
+                    self.consume();
+                    Ok(Some(Token::Colon(loc)))
                 } else if head_char == '?' {
                     Ok(Some(self.tokenize_hole()?))
+                } else if head_char == '-' {
+                    match self.peek_ahead(1) {
+                        Some('>') => {
+                            self.consume();
+                            self.consume();
+                            Ok(Some(Token::Arrow(loc)))
+                        },
+                        _ => Err("Expected '>'".to_string()),
+                    }
                 } else if head_char == '=' {
                     match self.peek_ahead(1) {
                         Some('>') => {
@@ -169,6 +184,7 @@ impl Tokenizer {
             ("match".to_string(), Token::Match(self.loc.clone())),
             ("with".to_string(), Token::With(self.loc.clone())),
             ("import".to_string(), Token::Import(self.loc.clone())),
+            ("as".to_string(), Token::As(self.loc.clone())),
         ].iter().cloned().collect();
 
         let loc = self.loc.clone();

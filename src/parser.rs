@@ -2,6 +2,8 @@ use std::path::Path;
 
 use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
+use crate::typecheck::Type;
+use crate::typecheck::TypeNode;
 use crate::ast;
 
 use ast::HoleId;
@@ -82,6 +84,18 @@ impl Parser {
         }
     }
 
+    fn consume_expect_arrow(&mut self) -> Result<(), ParseErr> {
+        let expected_token = "=>";
+        match self.peek() {
+            Some(Token::Arrow(_)) => {
+                self.consume();
+                Ok(())
+            },
+            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
+            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
+        }
+    }
+
     fn consume_expect_left_paren(&mut self) -> Result<(), ParseErr> {
         let expected_token = "(";
         match self.peek() {
@@ -121,6 +135,17 @@ impl Parser {
         let expected_token = "=";
         match self.peek() {
             Some(Token::Equals(_)) => {
+                self.consume();
+                Ok(())
+            },
+            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
+            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
+        }
+    }
+    fn consume_expect_colon(&mut self) -> Result<(), ParseErr> {
+        let expected_token = ":";
+        match self.peek() {
+            Some(Token::Colon(_)) => {
                 self.consume();
                 Ok(())
             },
@@ -181,6 +206,18 @@ impl Parser {
         let expected_token = "import";
         match self.peek() {
             Some(Token::Import(_)) => {
+                self.consume();
+                Ok(())
+            },
+            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
+            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
+        }
+    }
+
+    fn consume_expect_as(&mut self) -> Result<(), ParseErr> {
+        let expected_token = "as";
+        match self.peek() {
+            Some(Token::As(_)) => {
                 self.consume();
                 Ok(())
             },
@@ -296,6 +333,32 @@ impl Parser {
         Ok(TermNode::Match(discriminee, match_arms).into())
     }
 
+    fn parse_type(&mut self) -> Result<Type, ParseErr> {
+        match self.peek() {
+            Some(Token::LeftParen(_)) => {
+                self.consume_expect_left_paren()?;
+                let typ = self.parse_type()?;
+                self.consume_expect_right_paren()?;
+                return Ok(typ);
+            },
+            Some(Token::Ident(_, _name)) => {
+                let mut idents = vec![self.consume_identifier()?];
+                while let Some(Token::Arrow(_)) = self.peek() {
+                    self.consume_expect_arrow()?;
+                    idents.push(self.consume_identifier()?);
+                }
+
+                let idents: Vec<Type> = idents.into_iter().rev().map(|ident| TypeNode::Atom(ident).into()).collect();
+                let (first, rest) = idents.split_first().unwrap();
+                let term: Type = rest.to_vec().iter().fold(first.clone(), |acc, dom| TypeNode::Arrow(dom.clone(), acc.clone()).into());
+
+                Ok(term)
+            },
+            None => Err("Expected '(' or identifier, but found end of input".to_string()),
+            _ => Err(format!("Expected '(' or identifier, but found {:?}", self.peek().unwrap())),
+        }
+    }
+
     fn parse_term(&mut self) -> Result<Term, ParseErr> {
         if let Some(Token::Match(_)) = self.peek() {
             self.parse_match()
@@ -316,11 +379,19 @@ impl Parser {
                 args.push(term_part);
             }
 
-            if args.is_empty() {
-                Ok(func)
+            let mut term = if args.is_empty() {
+                func
             } else {
-                Ok(TermNode::App(func, args).into())
+                TermNode::App(func, args).into()
+            };
+
+            if let Some(Token::As(_)) = self.peek() {
+                self.consume_expect_as()?;
+                let typ = self.parse_type()?;
+                term = TermNode::As(term, typ).into();
             }
+
+            Ok(term)
         }
     }
 
@@ -328,12 +399,14 @@ impl Parser {
         self.consume_expect_def()?;
         let idents = self.consume_identifier_plus()?;
         let (binding_name, var_names) = idents.split_first().unwrap();
+        self.consume_expect_colon()?;
+        let typ = self.parse_type()?;
         self.consume_expect_equals()?;
         let mut body = self.parse_term()?;
         for var_name in var_names.iter().rev() {
             body = TermNode::Lam(var_name.to_string(), body).into();
         }
-        Ok(Def(binding_name.to_string(), body))
+        Ok(Def(binding_name.to_string(), typ, body))
     }
 
     fn parse_import(&mut self) -> Result<Import, ParseErr> {

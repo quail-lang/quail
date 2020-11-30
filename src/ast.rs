@@ -1,6 +1,7 @@
 use std::rc;
 use std::fmt;
 
+use crate::typecheck::Type;
 use crate::tokenizer::Loc;
 
 #[derive(Clone, Debug)]
@@ -10,7 +11,7 @@ pub struct Module {
 }
 
 #[derive(Clone, Debug)]
-pub struct Def(pub String, pub Term);
+pub struct Def(pub String, pub Type, pub Term);
 
 #[derive(Clone, Debug)]
 pub struct Import(pub String);
@@ -26,6 +27,7 @@ pub enum TermNode {
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
     Hole(HoleInfo),
+    As(Term, Type),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -121,6 +123,14 @@ impl Context {
             ctx = ctx.extend(name, value.clone());
         }
         ctx
+    }
+
+    pub fn append(&self, ctx: Context) -> Context {
+        let mut result_ctx = self.clone();
+        for (name, value) in ctx.bindings().iter() {
+            result_ctx = result_ctx.extend(name, value.clone());
+        }
+        result_ctx
     }
 
     pub fn bindings(&self) -> Vec<(String, Value)> {
