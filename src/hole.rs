@@ -32,6 +32,15 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                                     Err(e) => println!("There was an error {:?}", e),
                                 }
                             },
+                            Some(Command::Eval(term_text)) => {
+                                match parser::parse_term(term_text) {
+                                    Ok(term) => {
+                                        let value = eval::eval(term, ctx.clone(), runtime);
+                                        println!("=> {:?}", &value);
+                                    },
+                                    Err(e) => println!("There was an error {:?}", e),
+                                }
+                            },
                             Some(Command::Invalid(invalid_cmd)) => {
                                 println!("Invalid command: {}", invalid_cmd);
                                 println!("Hint: Try 'help' if you don't know what to do.");
@@ -53,6 +62,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
 
 enum Command {
     Fill(String),
+    Eval(String),
     Abort,
     Help,
     Invalid(String),
@@ -103,6 +113,9 @@ fn parse_command(line: &str) -> Option<Command> {
         if command_name == "fill" {
             let remainder: String = parts[1..].join(" ");
             Some(Command::Fill(remainder))
+        } else if command_name =="eval" {
+            let remainder: String = parts[1..].join(" ");
+            Some(Command::Eval(remainder))
         } else if command_name =="abort" || command_name == "exit" || command_name == "quit" {
             Some(Command::Abort)
         } else if command_name == "help" || command_name == "h" || command_name == "?" {
