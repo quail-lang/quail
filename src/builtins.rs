@@ -268,17 +268,24 @@ fn list_to_vec(v: Value) -> Vec<Value> {
 }
 
 fn nat_to_u64(v: Value) -> u64 {
-    match v {
-        Value::Ctor(tag, contents) => {
-            if tag == "zero" {
-                0
-            } else if tag == "succ" {
-                let inner_value = &contents[0];
-                1 + nat_to_u64(inner_value.clone())
-            } else {
-                 panic!("This isn't a nat.")
-            }
-        },
-        _ => panic!("This isn't a nat."),
+    let mut val = v;
+    let mut result = 0;
+
+    loop {
+        match val {
+            Value::Ctor(tag, contents) => {
+                if tag == "zero" {
+                    break
+                } else if tag == "succ" {
+                    val = contents[0].clone();
+                    result += 1;
+                } else {
+                     panic!("This isn't a nat.")
+                }
+            },
+            _ => panic!("This isn't a nat."),
+        }
     }
+
+    result
 }
