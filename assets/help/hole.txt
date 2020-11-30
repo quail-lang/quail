@@ -18,10 +18,6 @@ To fill a hole, write:
 
 where <expr> is an expression like `zero` or `cons zero nil`.
 
-Once the hole is filled, you may continue with:
-
-    > continue
-
 If you would like to abort the program instead of filling the hole, use:
 
     > abort

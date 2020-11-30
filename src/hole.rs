@@ -9,8 +9,6 @@ use crate::parser;
 use rustyline::error::ReadlineError;
 
 pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
-    let mut candidate: Option<Value> = None;
-
     match runtime.holes.get_mut(&hole_info.hole_id) {
         Some(value) => value.clone(),
         None => {
@@ -26,8 +24,10 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                             Some(Command::Fill(term_text)) => {
                                 match parser::parse_term(term_text) {
                                     Ok(term) => {
-                                        candidate = Some(eval::eval(term, ctx.clone(), runtime));
-                                        println!("=> {:?}", &candidate);
+                                        let value = eval::eval(term, ctx.clone(), runtime);
+                                        println!("=> {:?}", &value);
+                                        runtime.fill_hole(hole_info.hole_id, value.clone());
+                                        return value;
                                     },
                                     Err(e) => println!("There was an error {:?}", e),
                                 }
@@ -37,15 +37,6 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                                 println!("Hint: Try 'help' if you don't know what to do.");
                             },
                             Some(Command::Abort) => std::process::exit(1),
-                            Some(Command::Continue) => {
-                                match candidate {
-                                    None => println!("You must fill the hole with a value before continuing."),
-                                    Some(value) => {
-                                        runtime.fill_hole(hole_info.hole_id, value.clone());
-                                        return value;
-                                    },
-                                }
-                            },
                             Some(Command::Help) => println!("{}", include_str!("../assets/help/hole.txt")),
                         }
                     },
@@ -63,7 +54,6 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
 enum Command {
     Fill(String),
     Abort,
-    Continue,
     Help,
     Invalid(String),
 }
@@ -115,8 +105,6 @@ fn parse_command(line: &str) -> Option<Command> {
             Some(Command::Fill(remainder))
         } else if command_name =="abort" || command_name == "exit" || command_name == "quit" {
             Some(Command::Abort)
-        } else if command_name == "continue" || command_name == "cont" {
-            Some(Command::Continue)
         } else if command_name == "help" || command_name == "h" || command_name == "?" {
             Some(Command::Help)
         } else {
