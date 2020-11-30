@@ -9,7 +9,8 @@ fn run_examples() {
     for path in paths {
         let filename = path.expect("Couldn't open file").path();
         println!("{:?}", filename);
-        let mut runtime = Runtime::load(filename);
+        let mut runtime = Runtime::new();
+        runtime.load(filename);
         runtime.exec();
     }
 }

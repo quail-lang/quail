@@ -14,13 +14,20 @@ use structopt::StructOpt;
 #[structopt(name = "quail", about = "The Quail Programming Language")]
 struct Opt {
         #[structopt(help = "Input file")]
-        filename: String,
+        filename: Option<String>,
 }
 
 fn main() {
     let opt = Opt::from_args();
     let filename = opt.filename;
-    println!("{}", include_str!("../assets/quail.txt"));
-    let mut runtime = runtime::Runtime::load(filename);
-    runtime.exec();
+    match filename {
+        None => {
+            println!("{}", include_str!("../assets/quail.txt"));
+        },
+        Some(filename) => {
+            let mut runtime = runtime::Runtime::new();
+            runtime.load(filename);
+            runtime.exec();
+        },
+    }
 }

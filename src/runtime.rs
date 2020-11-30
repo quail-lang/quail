@@ -38,12 +38,11 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn load(filepath: impl AsRef<std::path::Path>) -> Self {
+    pub fn new() -> Self {
         let readline_file = dirs::config_dir()
             .expect("User does not have a home directory??")
             .join("quail").join("history");
 
-        println!("Loading readline history: {:?}", &readline_file);
         if !readline_file.exists() {
             std::fs::create_dir_all(&readline_file.parent().unwrap()).unwrap();
             std::fs::File::create(&readline_file).expect("Could not create readline file");
@@ -62,11 +61,16 @@ impl Runtime {
             builtin_type_ctx = builtin_type_ctx.append(inductive_typedef.ctor_type_context());
         }
 
-        let mut runtime = Runtime {
+        let mut editor = rustyline::Editor::new();
+        if editor.load_history(&readline_file).is_err() {
+            eprintln!("Could not read from {:?} for readline history.", &readline_file);
+        }
+
+        Runtime {
             imports: vec![],
             holes: HashMap::new(),
             readline_file: readline_file.to_string_lossy().to_string(),
-            editor: rustyline::Editor::new(),
+            editor,
             number_of_holes: 0,
 
             inductive_typedefs,
@@ -76,16 +80,13 @@ impl Runtime {
 
             definition_type_ctx: TypeContext::empty(),
             builtin_type_ctx,
-        };
-
-        if runtime.editor.load_history(&runtime.readline_file).is_err() {
-            eprintln!("Could not read from {:?} for readline history.", &readline_file);
         }
+    }
 
+    pub fn load(&mut self, filepath: impl AsRef<std::path::Path>) {
         let basedir = std::path::Path::new(filepath.as_ref().parent().expect("Invalid path"));
         let filename = std::path::Path::new(filepath.as_ref().file_name().expect("Invalid path"));
-        runtime.load_module(filename, basedir, true);
-        runtime
+        self.load_module(filename, basedir, true);
     }
 
     fn load_module(&mut self, filename: &std::path::Path, basedir: &std::path::Path, is_main: bool) {
@@ -95,7 +96,6 @@ impl Runtime {
             self.imports.push(filename.to_string_lossy().to_string());
         }
         let filepath = basedir.join(filename);
-        println!("Loading {:?}", filepath.to_string_lossy());
         use std::fs;
         use std::io::Read;
         let mut module_text = String::new();
