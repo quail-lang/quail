@@ -10,10 +10,10 @@ use crate::typecheck::TypeContext;
 use crate::typecheck::Type;
 use crate::ast::CtorTag;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InductiveTypeDef {
-    name: String,
-    ctor_types: HashMap<CtorTag, Type>,
+    pub name: String,
+    pub ctor_types: HashMap<CtorTag, Type>,
 }
 
 impl InductiveTypeDef {
@@ -51,6 +51,9 @@ impl InductiveTypeDef {
         ctx
     }
 
+    pub fn ctor_tags(&self) -> Vec<CtorTag> {
+        self.ctor_types.keys().cloned().collect()
+    }
 }
 
 fn ctor_type_from_signature(name: &str, ctor_signature: &[Type]) -> Type {
