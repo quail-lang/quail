@@ -124,7 +124,7 @@ impl Context {
         Context(rc::Rc::new(ContextNode(Vec::new())))
     }
 
-    pub fn lookup(&self, x: &String) -> Option<Value> {
+    pub fn lookup(&self, x: &str) -> Option<Value> {
         let Context(rc_ctx_node) = self;
         let ContextNode(var_val_list) = rc_ctx_node.as_ref();
         for (y, value) in var_val_list.iter().rev() {

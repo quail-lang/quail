@@ -23,6 +23,7 @@ pub struct Runtime {
     pub holes: HashMap<HoleId, Value>,
     pub readline_file: String,
     pub editor: rustyline::Editor<()>,
+    pub builtin_ctx: Context,
 }
 
 impl Runtime {
@@ -43,6 +44,7 @@ impl Runtime {
             holes: HashMap::new(),
             readline_file: readline_file.to_string_lossy().to_string(),
             editor: rustyline::Editor::new(),
+            builtin_ctx: builtins_ctx(),
         };
 
         if runtime.editor.load_history(&runtime.readline_file).is_err() {
@@ -103,7 +105,7 @@ impl Runtime {
 
     pub fn exec(&mut self) {
         let ast::Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
-        eval(main_body, prelude_ctx(), self);
+        eval(main_body, Context::empty(), self);
     }
 
     pub fn readline(&mut self) -> Result<String, ReadlineError> {
@@ -115,6 +117,10 @@ impl Runtime {
 
     pub fn fill_hole(&mut self, hole_id: HoleId, value: Value) {
         self.holes.insert(hole_id, value);
+    }
+
+    pub fn lookup_builtin(&self, x: &str) -> Option<Value> {
+        self.builtin_ctx.lookup(x)
     }
 }
 
@@ -209,7 +215,7 @@ fn show_prim(vs: Vec<Value>) -> Value {
     }
 }
 
-pub fn prelude_ctx() -> Context {
+pub fn builtins_ctx() -> Context {
     Context::empty()
         .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))))
         .extend(&"zero".into(), Value::Ctor("zero".into(), Vec::new()))
@@ -251,12 +257,19 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
     use crate::ast::TermNode::*;
     match t.as_ref() {
         Var(x) => {
-            match ctx.lookup(x) {
-                Some(v) => v,
+            match runtime.definition(x.to_string()) {
+                Some(ast::Def(_, body)) => eval(body.clone(), ctx, runtime),
                 None => {
-                    let ast::Def(_, body) = runtime.definition(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
-                    eval(body.clone(), ctx, runtime)
-                },
+                    match ctx.lookup(&x) {
+                        Some(v) => v,
+                        None => {
+                            match runtime.lookup_builtin(&x) {
+                                Some(v) => v,
+                                None => panic!(format!("Unbound variable {:?}", &x)),
+                            }
+                        },
+                    }
+                }
             }
         },
         Lam(x, body) => {
