@@ -7,12 +7,6 @@ pub struct Module {
     pub imports: Vec<Import>,
 }
 
-impl Module {
-    pub fn new(definitions: Vec<Def>, imports: Vec<Import>) -> Self {
-        Module { definitions, imports }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Def(pub String, pub Term);
 
@@ -27,20 +21,6 @@ pub enum Type {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Term(pub rc::Rc<TermNode>);
-
-impl AsRef<TermNode> for Term {
-    fn as_ref(&self) -> &TermNode {
-        use std::borrow::Borrow;
-        let Term(rc_tn) = self;
-        rc_tn.borrow()
-    }
-}
-
-impl From<TermNode> for Term {
-    fn from(tn: TermNode) -> Self {
-        Term(rc::Rc::new(tn))
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TermNode {
@@ -59,27 +39,7 @@ pub struct HoleInfo {
     pub contents: Option<String>,
 }
 
-impl HoleInfo {
-    pub fn new(hole_id: HoleId, name: Option<String>, contents: Option<String>) -> Self {
-        HoleInfo {
-            hole_id,
-            name,
-            contents,
-        }
-    }
-}
-
 pub type HoleId = usize;
-
-pub fn find_matching_arm(tag: &CtorTag, match_arms: &[MatchArm]) -> MatchArm {
-    for match_arm in match_arms {
-        let MatchArm(pat, _body) = match_arm;
-        if pat[0] == *tag {
-            return match_arm.clone();
-        }
-    }
-    panic!(format!("No matching arm found for tag {:?}", tag))
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MatchArm(pub Pattern, pub Term);
@@ -96,28 +56,42 @@ pub enum Value {
 
 pub type CtorTag = String;
 
-impl fmt::Debug for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Value::Ctor(tag, contents) => {
-                write!(f, "{}", &tag)?;
-                for value in contents {
-                    write!(f, " ({:?})", value)?;
-                }
-                Ok(())
-            },
-            Value::Str(s) => write!(f, "{}", s),
-            Value::Fun(_, _, _) => write!(f, "<fun>"),
-            Value::Prim(_) => write!(f, "<prim>"),
-        }
-    }
-}
-
 #[derive(Debug)]
 struct ContextNode(Vec<(String, Value)>);
 
 #[derive(Debug, Clone)]
 pub struct Context(rc::Rc<ContextNode>);
+
+impl AsRef<TermNode> for Term {
+    fn as_ref(&self) -> &TermNode {
+        use std::borrow::Borrow;
+        let Term(rc_tn) = self;
+        rc_tn.borrow()
+    }
+}
+
+impl From<TermNode> for Term {
+    fn from(tn: TermNode) -> Self {
+        Term(rc::Rc::new(tn))
+    }
+}
+
+impl Module {
+    pub fn new(definitions: Vec<Def>, imports: Vec<Import>) -> Self {
+        Module { definitions, imports }
+    }
+}
+
+
+impl HoleInfo {
+    pub fn new(hole_id: HoleId, name: Option<String>, contents: Option<String>) -> Self {
+        HoleInfo {
+            hole_id,
+            name,
+            contents,
+        }
+    }
+}
 
 impl Context {
     pub fn empty() -> Self {
@@ -155,5 +129,32 @@ impl Context {
         let Context(context_node_rc) = self;
         let ContextNode(bindings) = context_node_rc.as_ref();
         bindings.clone()
+    }
+}
+
+pub fn find_matching_arm(tag: &CtorTag, match_arms: &[MatchArm]) -> MatchArm {
+    for match_arm in match_arms {
+        let MatchArm(pat, _body) = match_arm;
+        if pat[0] == *tag {
+            return match_arm.clone();
+        }
+    }
+    panic!(format!("No matching arm found for tag {:?}", tag))
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Value::Ctor(tag, contents) => {
+                write!(f, "{}", &tag)?;
+                for value in contents {
+                    write!(f, " ({:?})", value)?;
+                }
+                Ok(())
+            },
+            Value::Str(s) => write!(f, "{}", s),
+            Value::Fun(_, _, _) => write!(f, "<fun>"),
+            Value::Prim(_) => write!(f, "<prim>"),
+        }
     }
 }
