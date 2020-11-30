@@ -2,6 +2,7 @@ pub mod parser;
 pub mod ast;
 pub mod eval;
 pub mod typecheck;
+pub mod tests;
 
 use std::fs;
 use std::env;
