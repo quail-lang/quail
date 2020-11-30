@@ -19,9 +19,12 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
             show_globals(runtime);
             show_holes(runtime, hole_info.hole_id);
 
+            let mut confuse_count = 0;
+
             loop {
                 match runtime.readline() {
                     Ok(line) => {
+                        confuse_count = 0;
                         match parse_command(&line) {
                             None => (),
                             Some(command) => match exec_command(runtime, &command, hole_info, &ctx) {
@@ -30,7 +33,12 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                             },
                         }
                     },
-                    Err(ReadlineError::Interrupted) => (),
+                    Err(ReadlineError::Interrupted) => {
+                        confuse_count += 1;
+                        if confuse_count > 1 {
+                            println!("Use Ctrl-D to exit.");
+                        }
+                    },
                     Err(ReadlineError::Eof) => std::process::exit(1),
                     Err(err) => {
                         panic!("Error: {:?}", err);
