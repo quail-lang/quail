@@ -11,7 +11,7 @@ endif
 syn keyword QuailKeyword fun def let match with
 syn match QuailIdentifier "\<[A-Za-z_][A-Za-z0-9_]*\>"
 syn match QuailLiteral "\<[0-9][0-9]*\>"
-syn keyword QuailStdLib succ zero false true nil cons unit
+syn keyword QuailStdLib succ zero false true nil cons unit pair left right println
 
 hi def link QuailKeyword Keyword
 hi def link QuailIdentifier Identifier
