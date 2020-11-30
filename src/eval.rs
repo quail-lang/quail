@@ -1,8 +1,6 @@
 use std::rc;
 
 use crate::ast::Term;
-use crate::ast::PrimFn;
-use crate::ast::TermNode::*;
 
 use crate::ast::Value;
 use crate::ast::Context;
@@ -42,6 +40,11 @@ pub fn eval_ctx(t: Term, ctx: Context) -> Value {
                 },
                 _ => panic!("Can't apply a value to a non-function {:?}.", &f),
             }
+        },
+        Let(x, v, body) => {
+            let v_value = eval_ctx(v.clone(), ctx.clone());
+            let extended_ctx = ctx.extend(x, v_value);
+            eval_ctx(body.clone(), extended_ctx)
         },
         NatLit(n) => Value::Nat(*n),
     }

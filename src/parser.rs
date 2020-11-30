@@ -6,6 +6,9 @@ pub enum Token {
     Ident(String),
     Lit(u64),
     Lambda,
+    Let,
+    Equals,
+    In,
     FatArrow,
     LeftParen,
     RightParen,
@@ -55,6 +58,23 @@ mod test {
             vec![Token::Lambda, Token::Ident("x".to_string()), Token::FatArrow, Token::Ident("x".to_string())]
         );
     }
+
+    #[test]
+    fn tokenize_test_c() {
+        let mut toker = Tokenizer::new("let f = succ in f 2");
+        assert_eq!(
+            toker.tokenize(),
+            vec![
+                Token::Let,
+                Token::Ident("f".to_string()),
+                Token::Equals,
+                Token::Ident("succ".to_string()),
+                Token::In,
+                Token::Ident("f".to_string()),
+                Token::Lit(2),
+            ]
+        );
+    }
 }
 
 impl Tokenizer {
@@ -91,8 +111,11 @@ impl Tokenizer {
                         self.consume();
                         self.consume();
                     },
-                    Some(_) => panic!("Uh oh #1"),
-                    None => panic!("Uh oh #2"),
+                    Some(_) => {
+                        tokens.push(Token::Equals);
+                        self.consume();
+                    }
+                    None => tokens.push(Token::Equals),
                 }
             } else {
                 panic!("Uh oh #3");
@@ -141,6 +164,8 @@ impl Tokenizer {
     fn tokenize_identifier(&mut self) -> Token {
         let keywords: HashMap<String, Token> = vec![
             ("fun".to_string(), Token::Lambda),
+            ("let".to_string(), Token::Let),
+            ("in".to_string(), Token::In),
         ].iter().cloned().collect();
         let first_char = self.input[self.cur];
         assert!(first_char.is_ascii_alphabetic());
@@ -241,7 +266,6 @@ impl Parser {
                     Ok(Some(ast::TermNode::NatLit(value).into()))
                 },
                 Token::Lambda => Ok(Some(self.parse_lambda()?)),
-                Token::FatArrow => Err("Can't start a term with a fat array ^^;;".into()),
                 Token::LeftParen => {
                     self.consume_expect(Token::LeftParen)?;
                     let term = self.parse_term();
@@ -249,6 +273,16 @@ impl Parser {
                     Ok(Some(term?))
                 }
                 Token::RightParen => Ok(None),
+                Token::Let => {
+                    self.consume_expect(Token::Let)?;
+                    let bind_var = self.consume_identifier()?;
+                    self.consume_expect(Token::Equals)?;
+                    let value = self.parse_term()?;
+                    self.consume_expect(Token::In)?;
+                    let body = self.parse_term()?;
+                    Ok(Some(ast::TermNode::Let(bind_var, value, body).into()))
+                },
+                _ => Ok(None),
             },
             None => Ok(None),
         }

@@ -35,6 +35,7 @@ pub enum TermNode {
     Var(String),
     Lam(String, Term),
     App(Term, Term),
+    Let(String, Term, Term),
     NatLit(u64),
 }
 
