@@ -1,7 +1,12 @@
 use std::rc;
+use std::collections::HashSet;
+use std::collections::HashMap;
 
 use super::ast::Term;
 use super::ast::TermNode;
+use crate::ast::CtorTag;
+use crate::ast::MatchArm;
+use crate::builtins::InductiveTypeDef;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Type(pub rc::Rc<TypeNode>);
@@ -20,7 +25,7 @@ pub struct TypeContext(rc::Rc<TypeContextNode>);
 
 pub type TypeErr = String;
 
-pub fn infer_type(t: Term, ctx: TypeContext) -> Result<Type, TypeErr> {
+pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, InductiveTypeDef>) -> Result<Type, TypeErr> {
     match t.as_ref() {
         TermNode::Var(x) => {
             match ctx.lookup(x) {
@@ -30,13 +35,13 @@ pub fn infer_type(t: Term, ctx: TypeContext) -> Result<Type, TypeErr> {
         },
         TermNode::Lam(_y, _body) => Err("Can't infer type of functions.".to_string()),
         TermNode::App(f, vs) => {
-            let mut result = infer_type(f.clone(), ctx.clone())?;
+            let mut result = infer_type(f.clone(), ctx.clone(), inductive_typedefs)?;
 
             for v in vs.iter() {
                 match result.as_ref() {
                     TypeNode::Atom(_) => return Err("Expected function type.".to_string()),
                     TypeNode::Arrow(dom, cod) => {
-                        check_type(v.clone(), ctx.clone(), dom.clone())?;
+                        check_type(v.clone(), ctx.clone(), inductive_typedefs, dom.clone())?;
                         result = cod.clone();
                     },
                 }
@@ -44,21 +49,21 @@ pub fn infer_type(t: Term, ctx: TypeContext) -> Result<Type, TypeErr> {
             Ok(result)
         },
         TermNode::Let(x, v, body) => {
-            let x_typ = infer_type(v.clone(), ctx.clone())?;
-            infer_type(body.clone(), ctx.extend(x, x_typ))
+            let x_typ = infer_type(v.clone(), ctx.clone(), inductive_typedefs)?;
+            infer_type(body.clone(), ctx.extend(x, x_typ), inductive_typedefs)
         },
         TermNode::Match(_t, _match_arms) => {
             Err("Can't infer type of match statements. (Yet?)".to_string())
         },
         TermNode::Hole(_hole_info) => Err("Can't infer type of a hole.".to_string()),
         TermNode::As(term, typ) => {
-            check_type(term.clone(), ctx, typ.clone())?;
+            check_type(term.clone(), ctx, inductive_typedefs, typ.clone())?;
             Ok(typ.clone())
         },
     }
 }
 
-pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
+pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, InductiveTypeDef>, typ: Type) -> Result<(), TypeErr> {
     match t.as_ref() {
         TermNode::Var(x) => {
             match ctx.lookup(&x) {
@@ -75,11 +80,11 @@ pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
         TermNode::Lam(x, body) => {
             match typ.as_ref() {
                 TypeNode::Atom(atom) => Err(format!("Functions need function types, but we got {}", atom)),
-                TypeNode::Arrow(dom, cod) => check_type(body.clone(), ctx.extend(x, dom.clone()), cod.clone()),
+                TypeNode::Arrow(dom, cod) => check_type(body.clone(), ctx.extend(x, dom.clone()), inductive_typedefs, cod.clone()),
             }
         },
         TermNode::App(_f, _vs) => {
-            let inferred_typ = infer_type(t.clone(), ctx)?;
+            let inferred_typ = infer_type(t.clone(), ctx, inductive_typedefs)?;
             if &inferred_typ == &typ {
                 Ok(())
             } else {
@@ -87,16 +92,14 @@ pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
             }
         },
         TermNode::Let(x, v, body) => {
-            let x_typ = infer_type(v.clone(), ctx.clone())?;
-            check_type(body.clone(), ctx.extend(x, x_typ), typ)
+            let x_typ = infer_type(v.clone(), ctx.clone(), inductive_typedefs)?;
+            check_type(body.clone(), ctx.extend(x, x_typ), inductive_typedefs, typ)
         },
-        TermNode::Match(_t, _match_arms) => {
-            unimplemented!()
-        },
+        TermNode::Match(t, match_arms) => check_type_match(t, match_arms, ctx, inductive_typedefs, typ),
         TermNode::Hole(_hole_info) => Ok(()),
         TermNode::As(term, as_typ) => {
             if &typ == as_typ {
-                check_type(term.clone(), ctx, typ)
+                check_type(term.clone(), ctx, inductive_typedefs, typ)
             } else {
                 Err(format!("Type mismatch during ascription: {:?} vs {:?}", &as_typ, &typ))
             }
@@ -104,6 +107,65 @@ pub fn check_type(t: Term, ctx: TypeContext, typ: Type) -> Result<(), TypeErr> {
     }
 }
 
+pub fn check_type_match(
+    discriminee: &Term,
+    match_arms: &[MatchArm],
+    ctx: TypeContext,
+    inductive_typedefs: &HashMap<String, InductiveTypeDef>,
+    typ: Type,
+) -> Result<(), TypeErr> {
+    let match_tags: HashSet<CtorTag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
+    // TODO: handle bottom type
+    let first_ctor_tag = &match_tags.iter().cloned().collect::<Vec<CtorTag>>()[0];
+    match lookup_typedef_by_ctor_tag(first_ctor_tag, inductive_typedefs) {
+        None => Err(format!("Unknown ctor {:?}", first_ctor_tag)),
+        Some(inductive_typedef) => {
+            check_type(discriminee.clone(), ctx.clone(), inductive_typedefs, TypeNode::Atom(inductive_typedef.name.to_string()).into())?;
+            for match_arm in match_arms {
+                check_type_match_arm(match_arm, inductive_typedef, &ctx, inductive_typedefs, &typ)?;
+            }
+            Ok(())
+        },
+    }
+}
+
+fn check_type_match_arm(
+    match_arm: &MatchArm,
+    inductive_typedef: &InductiveTypeDef,
+    ctx: &TypeContext,
+    inductive_typedefs: &HashMap<String, InductiveTypeDef>,
+    typ: &Type,
+) -> Result<(), TypeErr> {
+    let MatchArm(pat, body) = match_arm;
+    let ctor_tag = pat[0].to_string();
+    let mut ctor_typ = inductive_typedef.ctor_types.get(&ctor_tag).unwrap();
+
+    let pattern_names: Vec<String> = (&pat[1..]).iter().cloned().collect();
+    let mut pattern_types: Vec<Type> = Vec::new();
+
+    while let TypeNode::Arrow(dom, cod) = ctor_typ.as_ref() {
+        pattern_types.push(dom.clone());
+        ctor_typ = cod;
+    }
+
+    if pattern_names.len() != pattern_types.len() {
+        Err(format!("Pattern has the wrong number of variables: {:?} is more than {}", pattern_names, pattern_types.len()))
+    } else {
+        let zipped: Vec<(String, Type)> = pattern_names.into_iter().zip(pattern_types).collect();
+        let extended_ctx = ctx.extend_many(&zipped);
+        check_type(body.clone(), extended_ctx.clone(), inductive_typedefs, typ.clone())
+    }
+}
+
+fn lookup_typedef_by_ctor_tag<'a>(ctor_tag: &CtorTag, inductive_typedefs: &'a HashMap<String, InductiveTypeDef>) -> Option<&'a InductiveTypeDef> {
+    for (_typename, inductive_typedef) in inductive_typedefs.iter() {
+        let ctor_tags: Vec<CtorTag> = inductive_typedef.ctor_types.keys().cloned().collect();
+        if ctor_tags.contains(&ctor_tag) {
+            return Some(inductive_typedef);
+        }
+    }
+    None
+}
 
 impl From<TypeNode> for Type {
     fn from(tn: TypeNode) -> Self {

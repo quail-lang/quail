@@ -28,7 +28,7 @@ pub struct Runtime {
     pub editor: rustyline::Editor<()>,
     pub number_of_holes: u64,
 
-    pub inductive_typedefs: Vec<InductiveTypeDef>,
+    pub inductive_typedefs: HashMap<String, InductiveTypeDef>,
 
     pub definition_ctx: Context,
     pub definition_type_ctx: TypeContext,
@@ -49,12 +49,15 @@ impl Runtime {
             std::fs::File::create(&readline_file).expect("Could not create readline file");
         }
 
-        let inductive_typedefs = builtins::builtin_inductive_typedefs();
+        let inductive_typedefs: HashMap<String, InductiveTypeDef> = builtins::builtin_inductive_typedefs()
+            .iter()
+            .map(|itd| (itd.name.to_string(), itd.clone()))
+            .collect();
 
         let mut builtin_ctx = builtins::builtins_ctx();
         let mut builtin_type_ctx = builtins::builtins_type_ctx();
 
-        for inductive_typedef in inductive_typedefs.iter() {
+        for inductive_typedef in inductive_typedefs.values() {
             builtin_ctx = builtin_ctx.append(inductive_typedef.ctor_context());
             builtin_type_ctx = builtin_type_ctx.append(inductive_typedef.ctor_type_context());
         }
@@ -120,7 +123,7 @@ impl Runtime {
             let Def(name, typ, body) = definition;
             if is_main || name != "main" {
                 let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(name, typ.clone());
-                typecheck::check_type(body.clone(), type_context, typ.clone())
+                typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())
                     .expect("That wasn't well typed:");
                 self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
