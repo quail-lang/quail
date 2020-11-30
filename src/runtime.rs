@@ -25,6 +25,7 @@ pub struct Runtime {
     pub readline_file: String,
     pub editor: rustyline::Editor<()>,
     pub builtin_ctx: Context,
+    pub number_of_holes: u64,
 }
 
 impl Runtime {
@@ -46,6 +47,7 @@ impl Runtime {
             readline_file: readline_file.to_string_lossy().to_string(),
             editor: rustyline::Editor::new(),
             builtin_ctx: builtins::builtins_ctx(),
+            number_of_holes: 0,
         };
 
         if runtime.editor.load_history(&runtime.readline_file).is_err() {
@@ -74,8 +76,9 @@ impl Runtime {
             .read_to_string(&mut module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
 
-        let module = parser::parse_module(Some(filename), &module_text)
+        let (module, number_of_new_holes) = parser::parse_module(self.next_hole_id(), Some(filename), &module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
+        self.add_holes(number_of_new_holes);
 
         if is_main {
             self.definitions.extend(module.definitions);
@@ -91,6 +94,14 @@ impl Runtime {
 
             self.load_module(import_filename, basedir, false);
         }
+    }
+
+    pub fn next_hole_id(&self) -> HoleId {
+        self.number_of_holes as HoleId
+    }
+
+    pub fn add_holes(&mut self, number_of_holes: u64) {
+        self.number_of_holes += number_of_holes;
     }
 
     fn definition(&self, name: &str) -> Option<&Def> {
@@ -117,6 +128,11 @@ impl Runtime {
 
     pub fn fill_hole(&mut self, hole_id: HoleId, value: Value) {
         self.holes.insert(hole_id, value);
+    }
+
+    pub fn hole_value(&self, hole_id: HoleId) -> Option<Value> {
+        assert!((hole_id as u64) < self.number_of_holes, "Invalid HoleId!");
+        self.holes.get(&hole_id).cloned()
     }
 
     pub fn lookup_builtin(&self, x: &str) -> Option<Value> {
@@ -198,5 +214,4 @@ impl Runtime {
             TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
         }
     }
-
 }

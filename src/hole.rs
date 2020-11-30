@@ -6,6 +6,7 @@ use crate::parser;
 
 use ast::Value;
 use ast::HoleInfo;
+use ast::HoleId;
 use ast::Context;
 use ast::Def;
 use runtime::Runtime;
@@ -24,8 +25,9 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                         match parse_command(&line) {
                             None => (),
                             Some(Command::Fill(term_text)) => {
-                                match parser::parse_term(None, &term_text) {
-                                    Ok(term) => {
+                                match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
+                                    Ok((term, number_of_new_holes)) => {
+                                        runtime.add_holes(number_of_new_holes);
                                         let value = runtime.eval(term, ctx.clone());
                                         println!("=> {:?}", &value);
                                         runtime.fill_hole(hole_info.hole_id, value.clone());
@@ -35,8 +37,9 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                                 }
                             },
                             Some(Command::Eval(term_text)) => {
-                                match parser::parse_term(None, &term_text) {
-                                    Ok(term) => {
+                                match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
+                                    Ok((term, number_of_new_holes)) => {
+                                        runtime.add_holes(number_of_new_holes);
                                         let value = runtime.eval(term, ctx.clone());
                                         println!("=> {:?}", &value);
                                     },

@@ -20,15 +20,21 @@ struct Parser {
     tokens: Vec<Token>,
     cur: usize,
     next_hole_id: HoleId,
+    hole_count: u64,
 }
 
 impl Parser {
-    fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(starting_hole_id: HoleId, tokens: Vec<Token>) -> Self {
         Parser {
             tokens,
             cur: 0,
-            next_hole_id: 0,
+            next_hole_id: starting_hole_id,
+            hole_count: 0,
         }
+    }
+
+    pub fn number_of_holes(&self) -> u64 {
+        self.hole_count
     }
 
     fn peek(&mut self) -> Option<Token> {
@@ -258,6 +264,7 @@ impl Parser {
     fn generate_hole_id(&mut self) -> HoleId {
         let hole_id = self.next_hole_id;
         self.next_hole_id += 1;
+        self.hole_count += 1;
         hole_id
     }
 
@@ -358,20 +365,22 @@ impl Parser {
     }
 }
 
-pub fn parse_term(source: Option<&Path>, input: &str) -> Result<Term, ParseErr> {
+pub fn parse_term(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<(Term, u64), ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize().expect("Error when tokenizing");
 
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(starting_hole_id, tokens);
 
-    parser.parse_term()
+    let term = parser.parse_term()?;
+    Ok((term, parser.number_of_holes()))
 }
 
-pub fn parse_module(source: Option<&Path>, input: &str) -> Result<Module, ParseErr> {
+pub fn parse_module(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -> Result<(Module, u64), ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize().expect("Error when tokenizing");
 
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(starting_hole_id, tokens);
 
-    parser.parse_module()
+    let module = parser.parse_module()?;
+    Ok((module, parser.number_of_holes()))
 }
