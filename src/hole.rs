@@ -9,25 +9,26 @@ use ast::HoleId;
 use runtime::Context;
 use runtime::Runtime;
 use runtime::Value;
+use crate::interpreter::Interpreter;
 
-pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
-    match runtime.holes.get_mut(&hole_info.hole_id) {
+pub fn fill(interpreter: &mut Interpreter, hole_info: &HoleInfo, ctx: Context) -> Value {
+    match interpreter.runtime.holes.get_mut(&hole_info.hole_id) {
         Some(value) => value.clone(),
         None => {
             introduce_hole(hole_info);
             show_bindings(&ctx);
-            show_globals(runtime);
-            show_holes(runtime, hole_info.hole_id);
+            show_globals(&interpreter.runtime);
+            show_holes(&interpreter.runtime, hole_info.hole_id);
 
             let mut confuse_count = 0;
 
             loop {
-                match runtime.readline() {
+                match interpreter.readline() {
                     Ok(line) => {
                         confuse_count = 0;
                         match parse_command(&line) {
                             None => (),
-                            Some(command) => match exec_command(runtime, &command, hole_info, &ctx) {
+                            Some(command) => match exec_command(&mut interpreter.runtime, &command, hole_info, &ctx) {
                                 None => (),
                                 Some(value) => return value,
                             },

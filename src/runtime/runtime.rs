@@ -1,12 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 
-use dirs;
-use rustyline::error::ReadlineError;
-
 use crate::parser;
 use crate::ast;
-use crate::hole;
 use crate::builtins;
 use crate::typecheck;
 use crate::typecontext::TypeContext;
@@ -14,6 +10,7 @@ use crate::typecontext::TypeContext;
 use ast::TermNode;
 use ast::Def;
 use ast::HoleId;
+use ast::HoleInfo;
 use ast::Import;
 use ast::MatchArm;
 use builtins::TypeDef;
@@ -24,7 +21,6 @@ use super::context::Context;
 ///
 /// Runtime is the global store for all of the information loaded into the program.
 ///
-#[derive(Debug)]
 pub struct Runtime {
     /// Keeps track of which modules have been loaded into the Runtime
     /// already. This is currently being used to break cyclic imports.
@@ -34,18 +30,6 @@ pub struct Runtime {
 
     /// holes - keeps track of what values have been supplied for each hole.
     pub holes: HashMap<HoleId, Value>,
-
-    /// The REPL and hole-filling mode both use rustyline, which is
-    /// a binding around readline. This filename needs to be preserved so that given
-    /// a new line of input, it can record it to this file.
-    ///
-    /// This value uses the dirs::config_dir() function of the dirs crate. It will
-    /// likely pick out something like $HOME/.config/quail/history as the location
-    /// to save the user's history.
-    pub readline_file: String,
-
-    /// The rustyline Editor. This is a handle to interact with the readline library.
-    pub editor: rustyline::Editor<()>,
 
     /// This keeps track of the number of holes. This information is not
     /// captured by the holes field because the holes HashMap is sparse. The
@@ -68,6 +52,8 @@ pub struct Runtime {
     pub builtin_ctx: Context,
     /// Tracks the types of the builtins, like println and show.
     pub builtin_type_ctx: TypeContext,
+
+    pub fill_hole_fn: Box<dyn FnMut(&HoleInfo, Context) -> Value>,
 }
 
 impl Runtime {
@@ -78,15 +64,6 @@ impl Runtime {
         let import_base = PathBuf::from(&import_base_string).canonicalize().unwrap();
         if !import_base.is_dir() {
             panic!("QUAIL_IMPORT_BASE is {} but that directory does not exist.", import_base_string);
-        }
-
-        let readline_file = dirs::config_dir()
-            .expect("User does not have a home directory??")
-            .join("quail").join("history");
-
-        if !readline_file.exists() {
-            std::fs::create_dir_all(&readline_file.parent().unwrap()).unwrap();
-            std::fs::File::create(&readline_file).expect("Could not create readline file");
         }
 
         let inductive_typedefs: HashMap<String, TypeDef> = builtins::builtin_inductive_typedefs()
@@ -102,17 +79,12 @@ impl Runtime {
             builtin_type_ctx = builtin_type_ctx.append(inductive_typedef.ctor_type_context());
         }
 
-        let mut editor = rustyline::Editor::new();
-        if editor.load_history(&readline_file).is_err() {
-            eprintln!("Could not read from {:?} for readline history.", &readline_file);
-        }
+        let fill_hole: Box<dyn FnMut(&HoleInfo, Context) -> Value> = Box::new(|_hole_info, _ctx| { panic!("Unfilled hole"); });
 
         Runtime {
             imports: vec![],
             import_base,
             holes: HashMap::new(),
-            readline_file: readline_file.to_string_lossy().to_string(),
-            editor,
             number_of_holes: 0,
 
             inductive_typedefs,
@@ -122,6 +94,7 @@ impl Runtime {
 
             definition_type_ctx: TypeContext::empty(),
             builtin_type_ctx,
+            fill_hole_fn: fill_hole,
         }
     }
 
@@ -223,14 +196,6 @@ impl Runtime {
         self.definition_ctx.lookup("main", 0).expect("There should be a main in your module");
     }
 
-    /// Reads a line using the rustyline readline library and saves it to the user's history file.
-    pub fn readline(&mut self) -> Result<String, ReadlineError> {
-        let line = self.editor.readline("> ")?;
-        self.editor.add_history_entry(line.as_str());
-        self.editor.save_history(&self.readline_file)?;
-        Ok(line)
-    }
-
     /// Fills a given hole with a given value.
     pub fn fill_hole(&mut self, hole_id: HoleId, value: Value) {
         self.holes.insert(hole_id, value);
@@ -327,7 +292,7 @@ impl Runtime {
                     _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
                 }
             },
-            TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
+            TermNode::Hole(hole_info) => (*self.fill_hole_fn)(hole_info, ctx),
             TermNode::As(term, _typ) => self.eval(&term, ctx),
         }
     }

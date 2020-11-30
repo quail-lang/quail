@@ -26,8 +26,8 @@ fn main() -> Result<(), runtime::RuntimeError> {
     match filename {
         None => {
             println!("{}", include_str!("../assets/quail.txt"));
-            let mut runtime = runtime::Runtime::new();
-            interpreter::repl(&mut runtime);
+            let mut interpreter = interpreter::Interpreter::new();
+            interpreter::repl(&mut interpreter);
         },
         Some(filename) => {
             let mut runtime = runtime::Runtime::new();
