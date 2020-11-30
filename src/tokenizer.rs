@@ -107,14 +107,6 @@ impl Tokenizer {
         }
     }
 
-    fn consume_comment(&mut self) {
-        while let Some(consume_char) = self.consume() {
-            if consume_char == '\n' {
-                break
-            }
-        }
-    }
-
     fn tokenize_hole(&mut self) -> Result<Token, TokenizeErr> {
         assert_eq!(self.consume(), Some('?'));
 
@@ -165,32 +157,6 @@ impl Tokenizer {
         }
     }
 
-    fn peek(&mut self) -> Option<char> {
-        self.peek_ahead(0)
-    }
-
-    fn peek_ahead(&mut self, k: usize) -> Option<char> {
-        match self.input.get(self.cur + k) {
-            Some(c) => Some(*c),
-            None => None,
-        }
-    }
-
-    fn consume(&mut self) -> Option<char> {
-        match self.peek() {
-            Some(peek_char) => {
-                if peek_char == '\n' {
-                    self.loc.next_line();
-                } else {
-                    self.loc.next_col();
-                }
-                self.cur += 1;
-                Some(peek_char)
-            },
-            None => None,
-        }
-    }
-
     fn tokenize_identifier(&mut self) -> Result<Token, TokenizeErr> {
         let keywords: HashMap<String, Token> = vec![
             ("fun".to_string(), Token::Lambda),
@@ -236,6 +202,40 @@ impl Tokenizer {
         match keywords.get(&token_string) {
             Some(token) => Ok(token.clone()),
             None => Ok(Token::Ident(token_string))
+        }
+    }
+
+    fn peek(&mut self) -> Option<char> {
+        self.peek_ahead(0)
+    }
+
+    fn peek_ahead(&mut self, k: usize) -> Option<char> {
+        match self.input.get(self.cur + k) {
+            Some(c) => Some(*c),
+            None => None,
+        }
+    }
+
+    fn consume(&mut self) -> Option<char> {
+        match self.peek() {
+            Some(peek_char) => {
+                if peek_char == '\n' {
+                    self.loc.next_line();
+                } else {
+                    self.loc.next_col();
+                }
+                self.cur += 1;
+                Some(peek_char)
+            },
+            None => None,
+        }
+    }
+
+    fn consume_comment(&mut self) {
+        while let Some(consume_char) = self.consume() {
+            if consume_char == '\n' {
+                break
+            }
         }
     }
 }
