@@ -113,6 +113,9 @@ impl Runtime {
         Ok(line)
     }
 
+    pub fn fill_hole(&mut self, hole_id: HoleId, value: Value) {
+        self.holes.insert(hole_id, value);
+    }
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {

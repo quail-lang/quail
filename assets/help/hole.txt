@@ -1,0 +1,28 @@
+You are in a hole.
+
+A hole is an incomplete expression that was not given a value before running the
+program. In the code, a hole can be indicated by any of the following forms:
+
+    ?
+    ?name
+    ?{Commented out code}
+    ?name{Commented out code}
+
+If Quail attempts to evalute a hole, execution pauses and you must fill in a
+value before continuing. Once filled, a hole will preserve that value if it is
+evaluted again.
+
+To fill a hole, write:
+
+    > fill <expr>
+
+where <expr> is an expression like `zero` or `cons zero nil`.
+
+Once the hole is filled, you may continue with:
+
+    > continue
+
+If you would like to abort the program instead of filling the hole, use:
+
+    > abort
+
