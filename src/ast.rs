@@ -25,12 +25,6 @@ pub enum Type {
     Arrow(Box<Type>, Box<Type>),
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub enum PrimFn {
-    Succ,
-    Add,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Term(pub rc::Rc<TermNode>);
 
