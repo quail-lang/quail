@@ -1,0 +1,7 @@
+[package]
+name = "quail"
+version = "0.1.0"
+authors = ["Michael Maloney"]
+edition = "2018"
+
+[dependencies]
