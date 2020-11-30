@@ -1,27 +1,26 @@
-import nat
 import pair
 
-def head = fun xs =>
+def head xs =
     match xs
         with nil => ?{head of empty list}
         with cons x xs' => x
 
-def tail = fun xs =>
+def tail xs =
     match xs
         with nil => ?{tail of empty list}
         with cons x xs' => xs'
 
-def length = fun xs =>
+def length xs =
     match xs
         with nil => zero
         with cons x xs' => succ (length xs')
 
-def map = fun f xs =>
+def map f xs =
     match xs
         with nil => nil
         with cons x xs' => cons (f x) (map f xs')
 
-def filter = fun p xs =>
+def filter p xs =
     match xs
         with nil => nil
         with cons x xs' => (
@@ -30,21 +29,21 @@ def filter = fun p xs =>
                 with false => filter p xs'
         )
 
-def fold = fun z s xs =>
+def fold z s xs =
     match xs
         with nil => z
         with cons x xs' => s z (fold z s xs')
 
-def up_to_iter = fun n k =>
+def up_to_iter n k =
     match k
         with zero => nil
         with succ k' =>
             let r = sub n k
             in cons r (up_to_iter n k')
 
-def up_to = fun n => up_to_iter n n
+def up_to n = up_to_iter n n
 
-def zip = fun xs ys =>
+def zip xs ys =
     match xs
         with nil => nil
         with cons x xs' => (
@@ -56,11 +55,11 @@ def zip = fun xs ys =>
                     cons head tail
         )
 
-def zip_with = fun f xs ys =>
+def zip_with f xs ys =
     let pairs = zip xs ys in
     map (fun p => f (fst p) (snd p))
 
-def take = fun n xs =>
+def take n xs =
     match n
         with zero => nil
         with succ n' => (

@@ -1,1 +1,2 @@
-def main = println (succ (succ zero))
+def id x = x
+def main = println (id zero)

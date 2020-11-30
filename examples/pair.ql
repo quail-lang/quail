@@ -1,8 +1,8 @@
-def fst = fun p =>
+def fst p =
     match p
         with pair a b => a
 
-def snd = fun p =>
+def snd p =
     match p
         with pair a b => b
 

@@ -4,9 +4,9 @@ import nat
 
 def one_hundred = mul four (mul five five)
 
-def is_factor_of = fun n m => eq (rem m n) zero
+def is_factor_of n m = eq (rem m n) zero
 
-def count_factors_iter = fun n k acc =>
+def count_factors_iter n k acc =
     match k
         with zero => acc
         with succ k' => (
@@ -16,25 +16,23 @@ def count_factors_iter = fun n k acc =>
         )
 
 # Counts the numer of factors for a given natural number.
-def count_factors = fun n => count_factors_iter n n zero
+def count_factors n = count_factors_iter n n zero
 
-def is_prime = fun n => eq (count_factors n) two
+def is_prime n = eq (count_factors n) two
 
 def sixteen = pow two (pow two two)
 
-def repeat =
-    fun f n =>
-        repeat_iter f n n
+def repeat f n =
+    repeat_iter f n n
 
-def repeat_iter =
-    fun f n k =>
-        match k
-            with zero => zero
-            with succ k' =>
-                let x = f (sub n k)
-                in (repeat_iter f n k')
+def repeat_iter f n k =
+    match k
+        with zero => zero
+        with succ k' =>
+            let x = f (sub n k)
+            in (repeat_iter f n k')
 
-def print_prime = fun n =>
+def print_prime n =
     match is_prime n
         with false => zero
         with true => println n
