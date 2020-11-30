@@ -24,7 +24,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                         match parse_command(&line) {
                             None => (),
                             Some(Command::Fill(term_text)) => {
-                                match parser::parse_term(&term_text) {
+                                match parser::parse_term(None, &term_text) {
                                     Ok(term) => {
                                         let value = runtime.eval(term, ctx.clone());
                                         println!("=> {:?}", &value);
@@ -35,7 +35,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                                 }
                             },
                             Some(Command::Eval(term_text)) => {
-                                match parser::parse_term(&term_text) {
+                                match parser::parse_term(None, &term_text) {
                                     Ok(term) => {
                                         let value = runtime.eval(term, ctx.clone());
                                         println!("=> {:?}", &value);
@@ -73,11 +73,11 @@ enum Command {
 fn introduce_hole(hole_info: &HoleInfo) {
     match &hole_info.name {
         None => {
-            println!("Encountered hole: #{}", hole_info.hole_id);
+            println!("Encountered hole: #{}     [{}]", hole_info.hole_id, hole_info.loc);
             println!();
         }
         Some(name) => {
-            println!("Encountered hole: {}", name);
+            println!("Encountered hole: {}      [{}]", name, hole_info.loc);
             println!();
         }
     }

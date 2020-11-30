@@ -1,3 +1,4 @@
+use std::fmt;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
@@ -39,11 +40,11 @@ pub struct Loc {
 type TokenizeErr = String;
 
 impl Tokenizer {
-    pub fn new(input: &str) -> Self {
+    pub fn new(source: Option<&Path>, input: &str) -> Self {
         Tokenizer {
             input: input.chars().collect(),
             cur: 0,
-            loc: Loc::new(None),
+            loc: Loc::new(source),
         }
     }
 
@@ -256,5 +257,15 @@ impl Loc {
 
     fn next_col(&mut self) {
         self.col += 1;
+    }
+}
+
+impl fmt::Display for Loc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Line {} col {}", self.line + 1, self.col + 1)?;
+        if let Some(path) = &self.path {
+            write!(f, " at {}", path.to_string_lossy())?;
+        }
+        Ok(())
     }
 }

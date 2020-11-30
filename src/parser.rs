@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
 use crate::ast;
@@ -356,8 +358,8 @@ impl Parser {
     }
 }
 
-pub fn parse_term(input: &str) -> Result<Term, ParseErr> {
-    let mut toker = Tokenizer::new(input);
+pub fn parse_term(source: Option<&Path>, input: &str) -> Result<Term, ParseErr> {
+    let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize().expect("Error when tokenizing");
 
     let mut parser = Parser::new(tokens);
@@ -365,8 +367,8 @@ pub fn parse_term(input: &str) -> Result<Term, ParseErr> {
     parser.parse_term()
 }
 
-pub fn parse_module(input: &str) -> Result<Module, ParseErr> {
-    let mut toker = Tokenizer::new(input);
+pub fn parse_module(source: Option<&Path>, input: &str) -> Result<Module, ParseErr> {
+    let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize().expect("Error when tokenizing");
 
     let mut parser = Parser::new(tokens);

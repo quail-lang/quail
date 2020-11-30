@@ -74,7 +74,7 @@ impl Runtime {
             .read_to_string(&mut module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
 
-        let module = parser::parse_module(&module_text)
+        let module = parser::parse_module(Some(filename), &module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
 
         if is_main {
