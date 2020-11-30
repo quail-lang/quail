@@ -180,7 +180,7 @@ impl Runtime {
             let Def(name, typ, body) = definition;
             if is_main || name != "main" {
                 let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(name, typ.clone());
-                typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())?;
+                typecheck::check_type(&body, type_context, &self.inductive_typedefs, typ.clone())?;
                 self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
                 let body_value = self.eval(&body, Context::empty());
@@ -194,7 +194,7 @@ impl Runtime {
     pub fn define(&mut self, definition: &Def) -> Result<(), RuntimeError> {
         let Def(name, typ, body) = definition;
         let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(&name, typ.clone());
-        typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())?;
+        typecheck::check_type(&body, type_context, &self.inductive_typedefs, typ.clone())?;
         self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
         let body_value = self.eval(&body, Context::empty());

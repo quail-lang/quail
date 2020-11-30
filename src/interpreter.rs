@@ -46,7 +46,7 @@ pub fn repl(runtime: &mut Runtime) {
                         Ok((term, number_of_new_holes)) => {
                             let type_context = runtime.builtin_type_ctx.append(runtime.definition_type_ctx.clone());
                             match typecheck::infer_type(
-                                    term.clone(),
+                                    &term,
                                     type_context,
                                     &runtime.inductive_typedefs,
                                 ) {
