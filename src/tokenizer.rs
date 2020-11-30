@@ -297,6 +297,19 @@ impl Tokenizer {
         }
     }
 
+    #[allow(dead_code)]
+    fn preview(&self, len: usize) -> String {
+        let mut s = String::new();
+        for i in 0..len {
+            if let Some(ch) = self.peek_ahead(i) {
+                s.push(ch);
+            } else {
+                break;
+            }
+        }
+        s
+    }
+
     fn consume(&mut self) -> Option<char> {
         match self.peek() {
             Some(peek_char) => {
