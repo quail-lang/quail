@@ -42,23 +42,15 @@ enum TermNode {
     PrimApp(PrimFn, Vec<Term>),
 }
 
-struct Context(collections::HashMap<String, Term>);
-
-impl Context {
-    fn empty() -> Self {
-        Context(collections::HashMap::new())
-    }
-}
-
-fn eval(t: Term, ctx: &Context) -> Term {
+fn eval(t: Term) -> Term {
     use TermNode::*;
     match t.as_ref() {
         Var(x) => t.clone(),
-        Lam(x, ty, body) => Lam(x.clone(), ty.clone(), eval(body.clone(), ctx)).into(),
+        Lam(x, ty, body) => Lam(x.clone(), ty.clone(), eval(body.clone())).into(),
         App(f, v) => match f.as_ref() {
             Lam(x, _ty, body) => {
                 let reduced_body = subst(body.clone(), x.clone(), v.clone());
-                eval(reduced_body, ctx)
+                eval(reduced_body)
             },
             _ => panic!("Applied argument to non-function."),
         },
@@ -135,5 +127,5 @@ fn main() {
         term.clone(),
     ).into();
     dbg!(&term2);
-    dbg!(eval(term2, &Context::empty()));
+    dbg!(eval(term2));
 }
