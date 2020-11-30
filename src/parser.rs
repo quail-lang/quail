@@ -407,7 +407,11 @@ impl Parser {
                 args.push(term_part);
             }
 
-            Ok(ast::TermNode::App(func, args).into())
+            if args.is_empty() {
+                Ok(func)
+            } else {
+                Ok(ast::TermNode::App(func, args).into())
+            }
         }
     }
 
