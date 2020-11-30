@@ -264,12 +264,26 @@ impl Parser {
         Ok(term)
     }
 
+    fn parse_variable(&mut self) -> Result<Term, ParseErr> {
+        let name = self.consume_identifier()?;
+        if let Some(Token::Dollar(_)) = self.peek() {
+            if let Some(Token::Nat(_, k)) = self.peek_ahead(1) {
+                self.consume();
+                self.consume();
+                Ok(TermNode::Var(name, k).into())
+            } else {
+                Err("Expected a number after $.".to_string())
+            }
+        } else {
+            Ok(TermNode::Var(name, 0).into())
+        }
+    }
+
     fn parse_term_part(&mut self) -> Result<Option<Term>, ParseErr> {
         match self.peek() {
             Some(token) => match token {
-                Token::Ident(_, name) => {
-                    self.consume();
-                    Ok(Some(TermNode::Var(name).into()))
+                Token::Ident(_, _name) => {
+                    Ok(Some(self.parse_variable()?))
                 },
                 Token::Lambda(_) => Ok(Some(self.parse_lambda()?)),
                 Token::LeftParen(_) => {

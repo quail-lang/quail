@@ -164,7 +164,7 @@ impl Runtime {
     }
 
     pub fn exec(&mut self) {
-        self.definition_ctx.lookup("main").expect("There should be a main in your module");
+        self.definition_ctx.lookup("main", 0).expect("There should be a main in your module");
     }
 
     pub fn readline(&mut self) -> Result<String, ReadlineError> {
@@ -217,10 +217,10 @@ impl Runtime {
     #[allow(mutable_borrow_reservation_conflict)]
     pub fn eval(self: &mut Runtime, t: Term, ctx: Context) -> Value {
         match t.as_ref() {
-            TermNode::Var(x) => {
-                ctx.lookup(&x)
-                    .or_else(|| self.definition_ctx.lookup(&x))
-                    .or_else(|| self.builtin_ctx.lookup(&x))
+            TermNode::Var(x, k) => {
+                ctx.lookup(&x, *k)
+                    .or_else(|| self.definition_ctx.lookup(&x, *k))
+                    .or_else(|| self.builtin_ctx.lookup(&x, *k))
                     .expect(&format!("Unbound variable {:?}", &x))
             },
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),

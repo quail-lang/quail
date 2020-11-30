@@ -22,8 +22,10 @@ pub enum Token {
     With(Loc),
     Import(Loc),
     Colon(Loc),
+    Dollar(Loc),
     As(Loc),
     Str(Loc, String),
+    Nat(Loc, usize),
 }
 
 pub struct Tokenizer {
@@ -93,10 +95,15 @@ impl Tokenizer {
                 } else if head_char == ':' {
                     self.consume();
                     Ok(Some(Token::Colon(loc)))
+                } else if head_char == '$' {
+                    self.consume();
+                    Ok(Some(Token::Dollar(loc)))
                 } else if head_char == '?' {
                     Ok(Some(self.tokenize_hole()?))
                 } else if head_char == '"' {
                     Ok(Some(self.tokenize_str()?))
+                } else if head_char.is_ascii_digit() {
+                    Ok(Some(self.tokenize_nat()?))
                 } else if head_char == '-' {
                     match self.peek_ahead(1) {
                         Some('>') => {
@@ -201,6 +208,27 @@ impl Tokenizer {
         Ok(Token::Str(loc, buffer))
     }
 
+    fn tokenize_nat(&mut self) -> Result<Token, TokenizeErr> {
+        #![allow(irrefutable_let_patterns)]
+        let loc = self.loc.clone();
+        let mut buffer = String::new();
+
+        while let consume_char = self.peek() {
+            self.consume();
+            match consume_char {
+                None => return Err("Expected \" but found end of file. Good luck!".to_string()),
+                Some(chr) => {
+                    if chr.is_ascii_digit() {
+                        buffer.push(chr);
+                    } else {
+                        break;
+                    }
+                },
+            }
+        }
+        let n = buffer.parse::<usize>().unwrap();
+        Ok(Token::Nat(loc, n))
+    }
     fn tokenize_identifier(&mut self) -> Result<Token, TokenizeErr> {
         let keywords: HashMap<String, Token> = vec![
             ("fun".to_string(), Token::Lambda(self.loc.clone())),

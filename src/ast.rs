@@ -23,7 +23,7 @@ pub struct Term(pub rc::Rc<TermNode>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TermNode {
-    Var(String),
+    Var(String, usize),
     Lam(String, Term),
     App(Term, Vec<Term>),
     Let(String, Term, Term),
@@ -103,12 +103,16 @@ impl Context {
         Context(rc::Rc::new(ContextNode(Vec::new())))
     }
 
-    pub fn lookup(&self, x: &str) -> Option<Value> {
+    pub fn lookup(&self, x: &str, k: usize) -> Option<Value> {
         let Context(rc_ctx_node) = self;
         let ContextNode(var_val_list) = rc_ctx_node.as_ref();
         for (y, value) in var_val_list.iter().rev() {
             if x == y {
-                return Some(value.clone());
+                if k == 0 {
+                    return Some(value.clone());
+                } else {
+                    return self.lookup(x, k - 1);
+                }
             }
         }
         None

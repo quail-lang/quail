@@ -28,8 +28,8 @@ pub type TypeErr = String;
 
 pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>) -> Result<Type, TypeErr> {
     match t.as_ref() {
-        TermNode::Var(x) => {
-            match ctx.lookup(x) {
+        TermNode::Var(x, k) => {
+            match ctx.lookup(x, *k) {
                 None => Err(format!("Variable {} not found in context", &x)),
                 Some(typ) => Ok(typ),
             }
@@ -57,7 +57,7 @@ pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
             Err("Can't infer type of match statements. (Yet?)".to_string())
         },
         TermNode::Hole(_hole_info) => Err("Can't infer type of a hole.".to_string()),
-        TermNode::StrLit(_contents) => { dbg!(); Ok(TypeNode::Atom("Str".to_string()).into())},
+        TermNode::StrLit(_contents) => { Ok(TypeNode::Atom("Str".to_string()).into())},
         TermNode::As(term, typ) => {
             check_type(term.clone(), ctx, inductive_typedefs, typ.clone())?;
             Ok(typ.clone())
@@ -67,8 +67,8 @@ pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
 
 pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>, typ: Type) -> Result<(), TypeErr> {
     match t.as_ref() {
-        TermNode::Var(x) => {
-            match ctx.lookup(&x) {
+        TermNode::Var(x, k) => {
+            match ctx.lookup(&x, *k) {
                 Some(x_typ) => {
                     if x_typ == typ {
                         Ok(())
@@ -235,12 +235,16 @@ impl TypeContext {
         TypeContext(rc::Rc::new(TypeContextNode(Vec::new())))
     }
 
-    pub fn lookup(&self, x: &str) -> Option<Type> {
+    pub fn lookup(&self, x: &str, k: usize) -> Option<Type> {
         let TypeContext(rc_ctx_node) = self;
         let TypeContextNode(var_typ_list) = rc_ctx_node.as_ref();
         for (y, typ) in var_typ_list.iter().rev() {
             if x == y {
-                return Some(typ.clone());
+                if k == 0 {
+                    return Some(typ.clone());
+                } else {
+                    return self.lookup(x, k - 1);
+                }
             }
         }
         None
