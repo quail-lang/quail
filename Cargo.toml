@@ -5,3 +5,4 @@ authors = ["Michael Maloney"]
 edition = "2018"
 
 [dependencies]
+rustyline = "4.1.0"

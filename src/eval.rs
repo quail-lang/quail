@@ -280,14 +280,24 @@ fn eval_hole(hole_id: HoleId, ctx: Context, runtime: &Runtime, contents: &str) -
 
     println!("");
 
-    let mut term_text = String::new();
-    print!("> ");
-    use std::io::Write;
-    std::io::stdout().flush().expect("Couldn't flush stdout??");
-    std::io::stdin().read_line(&mut term_text).expect("Couldn't read from stdin??");
+    let mut rl = rustyline::Editor::<()>::new();
+    use rustyline::error::ReadlineError;
 
-    match parser::parse_term(term_text) {
-        Ok(term) => eval(term, ctx, runtime),
-        Err(e) => panic!(format!("There was an error {:?}", e)),
+    loop {
+        match rl.readline("> ") {
+            Ok(term_text) => {
+                match parser::parse_term(term_text) {
+                    Ok(term) => {
+                        return eval(term, ctx, runtime);
+                    }
+                    Err(e) => println!("There was an error {:?}", e),
+                }
+            },
+            Err(ReadlineError::Interrupted) => (),
+            Err(ReadlineError::Eof) => std::process::exit(1),
+            Err(err) => {
+                panic!("Error: {:?}", err);
+            }
+        }
     }
 }
