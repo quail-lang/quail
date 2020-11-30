@@ -389,10 +389,14 @@ impl Parser {
 
     fn parse_def(&mut self) -> Result<ast::Def, ParseErr> {
         self.consume_expect(Token::Def)?;
-        let binding_name = self.consume_identifier()?;
+        let idents = self.consume_identifier_plus()?;
+        let (binding_name, var_names) = idents.split_first().unwrap();
         self.consume_expect(Token::Equals)?;
-        let body = self.parse_term()?;
-        Ok(ast::Def(binding_name, body))
+        let mut body = self.parse_term()?;
+        for var_name in var_names.into_iter().rev() {
+            body = ast::TermNode::Lam(var_name.to_string(), body).into();
+        }
+        Ok(ast::Def(binding_name.to_string(), body))
     }
 
     fn parse_import(&mut self) -> Result<ast::Import, ParseErr> {
