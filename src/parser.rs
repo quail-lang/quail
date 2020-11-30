@@ -162,200 +162,129 @@ impl Tokenizer {
     }
 }
 
-pub fn parse(input: impl Into<String>) -> ast::Term {
-    let expr = parse_sexpr(input).expect("Could not parse.");
-    expr_to_term(expr)
-}
-
-fn assert_atom(expr: Expr) -> String {
-    let Expr(expr_node) = expr;
-    match *expr_node {
-        ExprNode::Atom(s) => s,
-        _ => panic!("assertion failed: not an Atom."),
-    }
-}
-
-fn expr_to_term(expr: Expr) -> ast::Term {
-    let Expr(expr_node) = expr;
-    match *expr_node {
-        ExprNode::List(exprs) => {
-            let Expr(head_expr_node) = exprs[0].clone();
-            match *head_expr_node {
-                ExprNode::Atom(v) => {
-                    match v.as_ref() {
-                        "fn" => {
-                            ast::TermNode::Lam(
-                                assert_atom(exprs[1].clone()),
-                                ast::Type::Bool,
-                                expr_to_term(exprs[2].clone()),
-                            ).into()
-                        },
-                        vs => {
-                            let x = expr_to_term(exprs[1].clone());
-                            ast::TermNode::App(
-                                ast::TermNode::Var(vs.to_string()).into(),
-                                x,
-                            ).into()
-                        },
-                    }
-                },
-                f => {
-                    assert!(exprs.len() == 2);
-                    let x = exprs[1].clone();
-                    ast::TermNode::App(
-                        expr_to_term(Expr(Box::new(f))),
-                        expr_to_term(x),
-                    ).into()
-                },
-            }
-        },
-        ExprNode::Atom(atom) => match atom.as_ref() {
-            "True" => ast::TermNode::BoolLit(true).into(),
-            "False" => ast::TermNode::BoolLit(false).into(),
-            var_name => ast::TermNode::Var(var_name.to_string()).into(),
-        },
-        ExprNode::Literal(val) => ast::TermNode::NatLit(val as u64).into(),
-    }
-}
-
-pub fn parse_sexpr(input: impl Into<String>) -> Option<Expr> {
-    Parser::new(input.into()).parse()
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct Expr(Box<ExprNode>);
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-enum ExprNode {
-    List(Vec<Expr>),
-    Atom(String),
-    Literal(usize),
-}
-
-#[derive(PartialEq, Eq, Debug)]
-enum ExprType {
-    List,
-    Atom,
-    Literal,
-}
+type ParseErr = String;
 
 struct Parser {
-    input: String,
-    cursor: usize,
-}
-
-impl fmt::Display for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Expr(expr_node) = self;
-        match expr_node.as_ref() {
-            ExprNode::List(xs) => {
-                write!(f, "(")?;
-                if xs.len() > 0 {
-                    write!(f, "{}", xs[0])?;
-
-                    for x in &xs[1..] {
-                        write!(f, " {}", x)?;
-                    }
-                }
-                write!(f, ")")
-            },
-            ExprNode::Atom(s) => write!(f, "{}", s),
-            ExprNode::Literal(l) => write!(f, "{}", l),
-        }
-    }
+    tokens: Vec<Token>,
+    cur: usize,
 }
 
 impl Parser {
-    fn new(input: String) -> Parser {
-        Parser { input, cursor: 0 }
-    }
-
-    fn consume_whitespace(&mut self) {
-        while let Some(chr) = self.peek_char() {
-            if chr.is_ascii_whitespace() {
-                self.cursor += 1;
-            } else {
-                break;
-            }
+    fn new(tokens: Vec<Token>) -> Self {
+        Parser {
+            tokens,
+            cur: 0,
         }
     }
 
-    fn peek_char(&self) -> Option<char> {
-        let chars: Vec<char> = self.input.chars().collect();
-        if self.cursor < chars.len() {
-            Some(chars[self.cursor])
-        } else {
-            None
-        }
+    fn peek(&mut self) -> Option<Token> {
+        self.peek_ahead(0)
     }
 
-    fn peek(&self) -> Option<ExprType> {
-        let next = self.peek_char().unwrap_or(' ');
-
-        if next == '(' {
-            Some(ExprType::List)
-        } else if next.is_ascii_alphabetic() {
-            Some(ExprType::Atom)
-        } else if next.is_ascii_digit() {
-            Some(ExprType::Literal)
-        } else {
-            None
-        }
-    }
-
-    fn parse_atom(&mut self) -> Option<Expr> {
-        let start = self.cursor;
-        while self.peek_char().unwrap_or(' ').is_ascii_alphabetic() {
-            self.cursor += 1;
-        }
-
-        if start < self.cursor {
-            let atom_string = self.input[start..self.cursor].to_string();
-            Some(Expr(Box::new(ExprNode::Atom(atom_string))))
-        } else {
-            None
-        }
-    }
-
-    fn parse_literal(&mut self) -> Option<Expr> {
-        let start = self.cursor;
-        while self.peek_char().unwrap_or(' ').is_ascii_digit() {
-            self.cursor += 1;
-        }
-
-        let literal_string = self.input[start..self.cursor].to_string();
-        let maybe_literal_value = literal_string.parse::<usize>().ok();
-        maybe_literal_value.map(|literal_value|
-            Expr(Box::new(ExprNode::Literal(literal_value)))
-        )
-    }
-
-    fn parse_list(&mut self) -> Option<Expr> {
-        if self.peek_char() == Some('(') {
-            self.cursor += 1;
-            self.consume_whitespace();
-            let mut exprs = Vec::new();
-            while self.peek_char() != Some(')') {
-                let expr = self.parse();
-                match expr {
-                    None => return None,
-                    Some(expr) => exprs.push(expr),
-                }
-            }
-            self.cursor += 1; // consume ')'
-            Some(Expr(Box::new(ExprNode::List(exprs))))
-        } else {
-            None
-        }
-    }
-
-    fn parse(&mut self) -> Option<Expr> {
-        self.consume_whitespace();
-        match self.peek() {
-            Some(ExprType::List) => self.parse_list(),
-            Some(ExprType::Atom) => self.parse_atom(),
-            Some(ExprType::Literal) => self.parse_literal(),
+    fn peek_ahead(&mut self, k: usize) -> Option<Token> {
+        match self.tokens.get(self.cur + k) {
+            Some(t) => Some(t.clone()),
             None => None,
         }
     }
+
+    fn consume(&mut self) -> Option<Token> {
+        match self.peek() {
+            Some(peek_token) => {
+                self.cur += 1;
+                Some(peek_token)
+            },
+            None => None,
+        }
+    }
+
+    fn consume_expect(&mut self, expected_token: Token) -> Result<(), ParseErr> {
+        match self.peek() {
+            Some(peek_token) => {
+                if peek_token == expected_token {
+                    self.cur += 1;
+                    Ok(())
+                } else {
+                    Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token))
+                }
+            },
+            None => {
+                Err(format!("Expected {:?} but found end of input.", expected_token))
+            },
+        }
+    }
+
+    fn consume_identifier(&mut self) -> Result<String, ParseErr> {
+        match self.consume() {
+            Some(Token::Ident(name)) => Ok(name),
+            Some(token) => Err(format!("Expected identifier but found {:?}.", token)),
+            None => Err("Expected identifier but found end of input.".into()),
+        }
+    }
+
+    fn parse_var(&mut self) -> Result<ast::Term, ParseErr> {
+        match self.consume() {
+            Some(Token::Ident(name)) => {
+                Ok(ast::TermNode::Var(name).into())
+            },
+            Some(token) => {
+                Err(format!("Expected identifier but found {:?}.", token))
+            },
+            None => {
+                Err(format!("Expected identifier but found end of input."))
+            },
+        }
+    }
+
+    fn parse_term(&mut self) -> Result<ast::Term, ParseErr> {
+        match self.peek() {
+            Some(token) => match token {
+                Token::Ident(name) => Ok(ast::TermNode::Var(name).into()),
+                Token::Lit(value) => Ok(ast::TermNode::NatLit(value).into()),
+                Token::Lambda => {
+                    self.consume_expect(Token::Lambda)?;
+                    let bind_var = self.consume_identifier()?;
+                    self.consume_expect(Token::FatArrow)?;
+                    let body = self.parse_term()?;
+                    Ok(ast::TermNode::Lam(bind_var, body).into())
+                }
+                Token::FatArrow => Err("Can't start a term with a fat array ^^;;".into()),
+                Token::LeftParen => {
+                    self.consume_expect(Token::LeftParen);
+                    let term = self.parse_term();
+                    self.consume_expect(Token::RightParen);
+                    term
+                }
+                Token::RightParen => Err("Can't start a term with a close paren, lol.".into()),
+            },
+            None => Err("Empty input".to_string()),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test_parser {
+    use super::*;
+
+    #[test]
+    fn test_a() {
+        let identity_fn: ast::Term = ast::TermNode::Lam(
+            "x".into(),
+            ast::TermNode::Var("x".into()).into(),
+        ).into();
+        assert_eq!(
+            parse("fn x => x"),
+            Ok(identity_fn),
+        );
+    }
+}
+
+pub fn parse(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
+    let mut toker = Tokenizer::new(input);
+    let tokens = toker.tokenize();
+    println!("{:?}", &tokens);
+
+    let mut parser = Parser::new(tokens);
+
+    parser.parse_term()
 }

@@ -13,7 +13,7 @@ pub enum PrimFn {
     Add,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Term(pub rc::Rc<TermNode>);
 
 impl AsRef<TermNode> for Term {
@@ -30,7 +30,7 @@ impl From<TermNode> for Term {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TermNode {
     Var(String),
     Lam(String, Term),
