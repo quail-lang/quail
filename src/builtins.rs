@@ -24,7 +24,7 @@ pub struct TypeDef {
     pub ctor_types: HashMap<Tag, Type>,
 }
 
-type PrimCode = Box<Fn(&mut Runtime, Vec<Value>) -> Value>;
+type PrimCode = Box<dyn Fn(&mut Runtime, Vec<Value>) -> Value>;
 
 pub struct PrimDef {
     pub name: String,
