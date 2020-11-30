@@ -1,5 +1,11 @@
 [![CircleCI](https://circleci.com/gh/quail-lang/quail.svg?style=svg)](https://circleci.com/gh/quail-lang/quail)
 
+* [Introduction](#introduction)
+* [Getting Started](#getting-started)
+* [Vim Highlighting](#vim-highlighting)
+
+## Introduction
+
 Quail is a programming inspired by Haskell, Idris, and Elm. It aims to explore
 the potential of language design when no compromises are made against the
 fundamental notions of purity and totality.
@@ -44,6 +50,8 @@ To get started, clone the repository, then run one of the example programs:
                 7
                 11
                 13
+
+## Vim Highlighting
 
 If you use vim, you can install the syntax highlighting like this:
 
