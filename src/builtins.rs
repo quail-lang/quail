@@ -24,6 +24,14 @@ pub struct TypeDef {
     pub ctor_types: HashMap<Tag, Type>,
 }
 
+type PrimCode = Box<Fn(&mut Runtime, Vec<Value>) -> Value>;
+
+pub struct PrimDef {
+    pub name: String,
+    pub typ: Type,
+    pub code: PrimCode,
+}
+
 ///
 /// Inductive Types consist of a name (such as `Nat`) and a list of constructor tags
 /// (`zero` and `succ`) together with their types (`Nat` and `Nat -> Nat`).
@@ -80,6 +88,17 @@ impl TypeDef {
     ///
     pub fn ctor_tags(&self) -> Vec<Tag> {
         self.ctor_types.keys().cloned().collect()
+    }
+}
+
+
+impl PrimDef {
+    pub fn new(name: String, typ: Type, code: PrimCode) -> Self {
+        PrimDef {
+            name,
+            typ,
+            code,
+        }
     }
 }
 
@@ -153,19 +172,51 @@ pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
     vec![nat_type, bool_type, top_type, bot_type, list_type, conat_type]
 }
 
+
+pub fn builtin_primdefs() -> Vec<PrimDef> {
+    let println_primdef = PrimDef::new(
+        "println".to_string(),
+          TypeNode::Arrow(
+            TypeNode::Atom("Str".to_string()).into(),
+            TypeNode::Atom("Top".to_string()).into(),
+        ).into(),
+        Box::new(println_prim),
+    );
+
+    let show_primdef = PrimDef::new(
+        "show".to_string(),
+        TypeNode::Arrow(
+            TypeNode::Atom("Nat".to_string()).into(),
+            TypeNode::Atom("Str".to_string()).into()
+        ).into(),
+        Box::new(show_prim),
+    );
+
+    vec![println_primdef, show_primdef]
+}
+
 pub fn builtins_ctx() -> Context {
-    Context::empty()
-        .extend("println", Value::Prim(rc::Rc::new(Box::new(println_prim))))
-        .extend("show", Value::Prim(rc::Rc::new(Box::new(show_prim))))
+    let mut ctx = Context::empty();
+
+    for primdef in builtin_primdefs() {
+        ctx = ctx.extend(
+            &primdef.name.to_string(),
+            Value::Prim(rc::Rc::new(primdef.code)),
+        );
+    }
+    ctx
 }
 
 pub fn builtins_type_ctx() -> TypeContext {
-    TypeContext::empty()
-        .extend("println", TypeNode::Arrow(
-                TypeNode::Atom("Str".to_string()).into(),
-                TypeNode::Atom("Top".to_string()).into(),
-        ).into())
-        .extend("show", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Str".to_string()).into()).into())
+    let mut ctx = TypeContext::empty();
+
+    for primdef in builtin_primdefs() {
+        ctx = ctx.extend(
+            &primdef.name.to_string(),
+            primdef.typ,
+        );
+    }
+    ctx
 }
 
 fn println_prim(_runtime: &mut Runtime, vs: Vec<Value>) -> Value {
