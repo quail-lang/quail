@@ -10,10 +10,9 @@ impl Program {
     pub fn def(&self, name: impl Into<String>) -> Option<&Item> {
         let name: String = name.into();
         for item in &self.items {
-            if let Item::Def(item_name, _) = &item {
-                if *item_name == name {
-                    return Some(item);
-                }
+            let Item::Def(item_name, _) = &item;
+            if *item_name == name {
+                return Some(item);
             }
         }
         None
