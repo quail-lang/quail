@@ -7,7 +7,7 @@ use super::ast::Term;
 use super::ast::TermNode;
 use crate::ast::CtorTag;
 use crate::ast::MatchArm;
-use crate::builtins::InductiveTypeDef;
+use crate::builtins::TypeDef;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Type(pub rc::Rc<TypeNode>);
@@ -26,7 +26,7 @@ pub struct TypeContext(rc::Rc<TypeContextNode>);
 
 pub type TypeErr = String;
 
-pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, InductiveTypeDef>) -> Result<Type, TypeErr> {
+pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>) -> Result<Type, TypeErr> {
     match t.as_ref() {
         TermNode::Var(x) => {
             match ctx.lookup(x) {
@@ -65,7 +65,7 @@ pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
     }
 }
 
-pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, InductiveTypeDef>, typ: Type) -> Result<(), TypeErr> {
+pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>, typ: Type) -> Result<(), TypeErr> {
     match t.as_ref() {
         TermNode::Var(x) => {
             match ctx.lookup(&x) {
@@ -120,7 +120,7 @@ pub fn check_type_match(
     discriminee: &Term,
     match_arms: &[MatchArm],
     ctx: TypeContext,
-    inductive_typedefs: &HashMap<String, InductiveTypeDef>,
+    inductive_typedefs: &HashMap<String, TypeDef>,
     typ: Type,
 ) -> Result<(), TypeErr> {
     let match_tags: Vec<CtorTag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
@@ -188,9 +188,9 @@ fn analyze_coverage(typedef_tags: &Vec<CtorTag>, match_tags: &Vec<CtorTag>) -> R
 
 fn check_type_match_arm(
     match_arm: &MatchArm,
-    inductive_typedef: &InductiveTypeDef,
+    inductive_typedef: &TypeDef,
     ctx: &TypeContext,
-    inductive_typedefs: &HashMap<String, InductiveTypeDef>,
+    inductive_typedefs: &HashMap<String, TypeDef>,
     typ: &Type,
 ) -> Result<(), TypeErr> {
     let MatchArm(pat, body) = match_arm;
@@ -214,7 +214,7 @@ fn check_type_match_arm(
     }
 }
 
-fn lookup_typedef_by_ctor_tag<'a>(ctor_tag: &CtorTag, inductive_typedefs: &'a HashMap<String, InductiveTypeDef>) -> Option<&'a InductiveTypeDef> {
+fn lookup_typedef_by_ctor_tag<'a>(ctor_tag: &CtorTag, inductive_typedefs: &'a HashMap<String, TypeDef>) -> Option<&'a TypeDef> {
     for (_typename, inductive_typedef) in inductive_typedefs.iter() {
         let ctor_tags: Vec<CtorTag> = inductive_typedef.ctor_types.keys().cloned().collect();
         if ctor_tags.contains(&ctor_tag) {

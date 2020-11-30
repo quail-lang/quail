@@ -17,7 +17,7 @@ use ast::Context;
 use ast::HoleId;
 use ast::Import;
 use ast::MatchArm;
-use builtins::InductiveTypeDef;
+use builtins::TypeDef;
 use typecheck::TypeContext;
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub struct Runtime {
     pub editor: rustyline::Editor<()>,
     pub number_of_holes: u64,
 
-    pub inductive_typedefs: HashMap<String, InductiveTypeDef>,
+    pub inductive_typedefs: HashMap<String, TypeDef>,
 
     pub definition_ctx: Context,
     pub definition_type_ctx: TypeContext,
@@ -48,7 +48,7 @@ impl Runtime {
             std::fs::File::create(&readline_file).expect("Could not create readline file");
         }
 
-        let inductive_typedefs: HashMap<String, InductiveTypeDef> = builtins::builtin_inductive_typedefs()
+        let inductive_typedefs: HashMap<String, TypeDef> = builtins::builtin_inductive_typedefs()
             .iter()
             .map(|itd| (itd.name.to_string(), itd.clone()))
             .collect();

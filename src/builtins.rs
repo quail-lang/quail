@@ -10,21 +10,30 @@ use crate::typecheck::TypeContext;
 use crate::typecheck::Type;
 use crate::ast::CtorTag;
 
+
 #[derive(Debug, Clone)]
-pub struct InductiveTypeDef {
+pub enum Flavor {
+    Inductive,
+    Coinductive,
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeDef {
     pub name: String,
+    pub flavor: Flavor,
     pub ctor_types: HashMap<CtorTag, Type>,
 }
 
-impl InductiveTypeDef {
-    pub fn new(name: &str, ctor_signatures: &[(CtorTag, &[Type])]) -> Self {
+impl TypeDef {
+    pub fn new(name: &str, flavor: Flavor, ctor_signatures: &[(CtorTag, &[Type])]) -> Self {
         let mut ctor_types = HashMap::new();
         for (tag, typ) in ctor_signatures.into_iter().map(|(tag, sig)| (tag, ctor_type_from_signature(&name, &sig))) {
             ctor_types.insert(tag.to_string(), typ);
         }
 
-        InductiveTypeDef {
+        TypeDef {
             name: name.to_string(),
+            flavor,
             ctor_types,
         }
     }
@@ -64,37 +73,42 @@ fn ctor_type_from_signature(name: &str, ctor_signature: &[Type]) -> Type {
     typ
 }
 
-pub fn builtin_inductive_typedefs() -> Vec<InductiveTypeDef> {
-    let nat_type = InductiveTypeDef::new(
+pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
+    let nat_type = TypeDef::new(
         "Nat",
+        Flavor::Inductive,
         &[
             ("zero".to_string(), &[]),
             ("succ".to_string(), &[TypeNode::Atom("Nat".to_string()).into()]),
         ]
     );
 
-    let bool_type = InductiveTypeDef::new(
+    let bool_type = TypeDef::new(
         "Bool",
+        Flavor::Inductive,
         &[
             ("true".to_string(), &[]),
             ("false".to_string(), &[]),
         ],
     );
 
-    let top_type = InductiveTypeDef::new(
+    let top_type = TypeDef::new(
         "Top",
+        Flavor::Inductive,
         &[
             ("top".to_string(), &[]),
         ],
     );
 
-    let bot_type = InductiveTypeDef::new(
+    let bot_type = TypeDef::new(
         "Bot",
+        Flavor::Inductive,
         &[],
     );
 
-    let list_type = InductiveTypeDef::new(
+    let list_type = TypeDef::new(
         "List",
+        Flavor::Inductive,
         &[
             ("nil".to_string(), &[]),
             ("cons".to_string(), &[
