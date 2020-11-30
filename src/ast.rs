@@ -20,8 +20,14 @@ pub struct Import(pub String);
 pub struct Term(pub rc::Rc<TermNode>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Variable {
+    pub name: String,
+    pub layer: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TermNode {
-    Var(String, usize),
+    Var(Variable),
     Lam(String, Term),
     App(Term, Vec<Term>),
     Let(String, Term, Term),

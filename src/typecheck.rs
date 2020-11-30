@@ -13,9 +13,12 @@ pub type TypeErr = String;
 
 pub fn infer_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>) -> Result<Type, TypeErr> {
     match t {
-        TermNode::Var(x, k) => {
-            match ctx.lookup(x, *k) {
-                None => Err(format!("Variable {} not found in context", &x)),
+        TermNode::Var(v) => {
+            let x = &v.name;
+            let k = v.layer;
+
+            match ctx.lookup(x, k) {
+                None => Err(format!("Variable {} not found in context", x)),
                 Some(typ) => Ok(typ),
             }
         },
@@ -53,8 +56,11 @@ pub fn infer_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<S
 
 pub fn check_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>, typ: Type) -> Result<(), TypeErr> {
     match t {
-        TermNode::Var(x, k) => {
-            match ctx.lookup(&x, *k) {
+        TermNode::Var(v) => {
+            let x = &v.name;
+            let k = v.layer;
+
+            match ctx.lookup(x, k) {
                 Some(x_typ) => {
                     if x_typ == typ {
                         Ok(())

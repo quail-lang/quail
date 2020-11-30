@@ -15,6 +15,7 @@ use ast::MatchArm;
 use ast::Def;
 use ast::Import;
 use ast::Pattern;
+use ast::Variable;
 
 type ParseErr = String;
 
@@ -270,12 +271,20 @@ impl Parser {
             if let Some(Token::Nat(_, k)) = self.peek_ahead(1) {
                 self.consume();
                 self.consume();
-                Ok(TermNode::Var(name, k).into())
+                let variable = Variable {
+                    name,
+                    layer: k,
+                };
+                Ok(TermNode::Var(variable).into())
             } else {
                 Err("Expected a number after $.".to_string())
             }
         } else {
-            Ok(TermNode::Var(name, 0).into())
+            let variable = Variable {
+                name,
+                layer: 0,
+            };
+            Ok(TermNode::Var(variable).into())
         }
     }
 

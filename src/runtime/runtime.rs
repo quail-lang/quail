@@ -240,12 +240,15 @@ impl Runtime {
     }
 
     /// Evaluates a term in a given local context and returns the result.
-    pub fn eval(self: &mut Runtime, t: &TermNode, ctx: Context) -> Value {
+    pub fn eval(&mut self, t: &TermNode, ctx: Context) -> Value {
         match t {
-            TermNode::Var(x, k) => {
-                ctx.lookup(&x, *k)
-                    .or_else(|| self.definition_ctx.lookup(&x, *k))
-                    .or_else(|| self.builtin_ctx.lookup(&x, *k))
+            TermNode::Var(v) => {
+                let x = &v.name;
+                let k = v.layer;
+
+                ctx.lookup(&x, k)
+                    .or_else(|| self.definition_ctx.lookup(x, k))
+                    .or_else(|| self.builtin_ctx.lookup(x, k))
                     .expect(&format!("Unbound variable {:?}", &x))
             },
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),
