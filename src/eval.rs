@@ -13,6 +13,7 @@ use ast::HoleId;
 
 #[derive(Clone, Debug)]
 pub struct Runtime {
+    pub imports: Vec<String>,
     pub definitions: Vec<ast::Def>,
     pub holes: HashMap<HoleId, Value>,
 }
@@ -20,6 +21,7 @@ pub struct Runtime {
 impl Runtime {
     pub fn load(filepath: impl AsRef<std::path::Path>) -> Self {
         let mut runtime = Runtime {
+            imports: vec![],
             definitions: vec![],
             holes: HashMap::new(),
         };
@@ -31,6 +33,11 @@ impl Runtime {
     }
 
     fn load_module(&mut self, filename: &std::path::Path, basedir: &std::path::Path, is_main: bool) {
+        if self.imports.contains(&filename.to_string_lossy().to_string()) {
+            return;
+        } else {
+            self.imports.push(filename.to_string_lossy().to_string());
+        }
         let filepath = basedir.join(filename);
         println!("Loading {:?}", filepath.to_string_lossy());
         use std::fs;
