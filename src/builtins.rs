@@ -88,7 +88,18 @@ pub fn builtin_inductive_typedefs() -> Vec<InductiveTypeDef> {
         ],
     );
 
-    vec![nat_type, bool_type, unit_type]
+    let list_type = InductiveTypeDef::new(
+        "List",
+        &[
+            ("nil".to_string(), &[]),
+            ("cons".to_string(), &[
+                TypeNode::Atom("Nat".to_string()).into(),
+                TypeNode::Atom("List".to_string()).into(),
+            ]),
+        ],
+    );
+
+    vec![nat_type, bool_type, unit_type, list_type]
 }
 
 pub fn builtins_ctx() -> Context {
