@@ -14,7 +14,7 @@ pub mod tests;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "quail", about = "The Quail Programming Language")]
+#[structopt(name = "Quail", about = "The Quail Programming Language")]
 struct Opt {
         #[structopt(help = "Input file")]
         filename: Option<String>,
