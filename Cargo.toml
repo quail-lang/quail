@@ -3,7 +3,8 @@ name = "quail"
 version = "0.1.0"
 authors = ["Michael Maloney"]
 edition = "2018"
-description = "The Quail Programming Langauge"
+description = "The Quail Programming Language"
+license = "BSD-2-Clause"
 
 [dependencies]
 rustyline = "4.1.0"
