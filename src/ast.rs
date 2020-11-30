@@ -49,7 +49,7 @@ pub enum TermNode {
     App(Term, Vec<Term>),
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
-    Hole(HoleId, String),
+    Hole(HoleId, Option<String> /* name */, Option<String> /* contents */),
 }
 
 pub type HoleId = usize;

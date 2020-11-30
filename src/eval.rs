@@ -111,17 +111,26 @@ impl Runtime {
         Ok(line)
     }
 
-    fn fill_hole(&mut self, hole_id: HoleId, contents: &str, ctx: Context) -> Value {
+    fn fill_hole(&mut self, hole_id: HoleId, name: &Option<String>, contents: &Option<String>, ctx: Context) -> Value {
         match self.holes.get_mut(&hole_id) {
             Some(value) => value.clone(),
             None => {
-                println!("Encountered hole #{}", hole_id);
-                println!("");
-                if contents != "" {
-                    println!("    Note: {:?}", contents);
+                match name {
+                    None => {
+                        println!("Encountered hole: #{}", hole_id);
+                        println!("");
+                    }
+                    Some(name_string) => {
+                        println!("Encountered hole: {}", name_string);
+                        println!("");
+                    }
                 }
 
-                println!("");
+                if let Some(contents_string) = contents {
+                    println!("    Note: {:?}", contents_string);
+                    println!("");
+                }
+
                 println!("    Bindings:");
                 for (name, value) in ctx.bindings().into_iter() {
                     println!("        {} = {:?}", name, &value);
@@ -328,7 +337,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(hole_id, contents) => runtime.fill_hole(*hole_id, contents, ctx),
+        Hole(hole_id, name, contents) => runtime.fill_hole(*hole_id, name, contents, ctx),
     }
 }
 

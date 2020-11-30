@@ -17,7 +17,7 @@ pub enum Token {
     RightCurly,
     LeftSquare,
     RightSquare,
-    Hole(String),
+    Hole(Option<String>, Option<String>),
     Match,
     With,
     Import,
@@ -96,6 +96,25 @@ impl Tokenizer {
 
     fn tokenize_hole(&mut self) -> Token {
         assert_eq!(self.consume(), Some('?'));
+
+        let peek_char : char;
+        let name: Option<String>;
+
+        match self.peek() {
+            None => return Token::Hole(None, None),
+            Some(chr) => peek_char = chr,
+        }
+
+        if peek_char.is_ascii_alphabetic() {
+            if let Token::Ident(token_name) = self.tokenize_identifier() {
+                name = Some(token_name);
+            } else {
+                unreachable!();
+            }
+        } else {
+            name = None;
+        }
+
         if let Some('{') = self.peek() {
             let mut level = 1;
             let mut contents = String::new();
@@ -117,10 +136,10 @@ impl Tokenizer {
             if level != 0 {
                 panic!("Mismatch curly braces.")
             } else {
-                Token::Hole(contents)
+                Token::Hole(name, Some(contents))
             }
         } else {
-            Token::Hole("".to_string())
+            Token::Hole(name, None)
         }
     }
 
@@ -315,9 +334,9 @@ impl Parser {
                     let body = self.parse_term()?;
                     Ok(Some(ast::TermNode::Let(bind_var, value, body).into()))
                 },
-                Token::Hole(contents) => {
+                Token::Hole(name, contents) => {
                     self.consume();
-                    Ok(Some(ast::TermNode::Hole(self.generate_hole_id(), contents).into()))
+                    Ok(Some(ast::TermNode::Hole(self.generate_hole_id(), name, contents).into()))
                 }
                 _ => Ok(None),
             },

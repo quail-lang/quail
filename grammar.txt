@@ -5,10 +5,11 @@ IMPORT := import IDENT
 TERM := TERMPART+ | match TERM PAT*
 TERMPART := VAR | LAMBDA | LET | HOLE | ( TERM )
 PAT := with IDENT+ => TERM
-HOLE := ? | ?{...}
+HOLE := ? | ?{...} | ?IDENT{...}
 IDENT := x, y, z, ...
 VAR := IDENT
 APP := TERM TERM
 LIT := 0, 1, ...
 LAMBDA := fun IDENT+ => TERM
 LET := let IDENT = TERM in TERM
+COMMENTS := # ... to end of line
