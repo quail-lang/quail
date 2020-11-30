@@ -252,13 +252,11 @@ impl Runtime {
     /// Evaluates a term in a given local context and returns the result.
     pub fn eval(&mut self, t: &TermNode, ctx: Context) -> Value {
         match t {
-            TermNode::Var(v) => {
-                self.eval_variable(v, ctx).expect(&format!("Unbound variable {:?}", v))
-            },
+            TermNode::Var(v) => self.eval_variable(v, ctx).expect(&format!("Unbound variable {:?}", v)),
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),
-            TermNode::Lam(x, body) => {
-                Value::Fun(x.clone(), body.clone(), ctx.clone())
-            },
+            TermNode::Hole(hole_info) => (*self.fill_hole_fn)(hole_info, ctx),
+            TermNode::As(term, _typ) => self.eval(&term, ctx),
+            TermNode::Lam(x, body) => Value::Fun(x.clone(), body.clone(), ctx.clone()),
             TermNode::App(f, vs) => {
                 let f_value = self.eval(&f, ctx.clone());
                 let f_value = self.force(&f_value);
@@ -299,8 +297,6 @@ impl Runtime {
                     _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
                 }
             },
-            TermNode::Hole(hole_info) => (*self.fill_hole_fn)(hole_info, ctx),
-            TermNode::As(term, _typ) => self.eval(&term, ctx),
         }
     }
 
