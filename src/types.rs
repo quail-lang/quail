@@ -21,29 +21,38 @@ impl From<TypeNode> for Type {
 }
 
 
-impl AsRef<TypeNode> for Type {
-    fn as_ref(&self) -> &TypeNode {
+impl std::ops::Deref for Type {
+    type Target = TypeNode;
+
+    fn deref(&self) -> &TypeNode {
         use std::borrow::Borrow;
         let Type(rc_tn) = self;
         rc_tn.borrow()
     }
 }
 
+impl AsRef<TypeNode> for Type {
+    fn as_ref(&self) -> &TypeNode {
+         use std::borrow::Borrow;
+         let Type(rc_tn) = self;
+         rc_tn.borrow()
+    }
+}
 
-impl fmt::Display for Type {
+impl fmt::Display for TypeNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.as_ref() {
+        match self {
             TypeNode::Atom(atom) => write!(f, "{}", atom),
             TypeNode::Arrow(dom, cod) => {
-                if let TypeNode::Atom(_) = dom.as_ref() {
-                    write!(f, "{}", dom)?;
+                if let TypeNode::Atom(_) = **dom {
+                    write!(f, "{}", **dom)?;
                 } else {
-                    write!(f, "({})", dom)?;
+                    write!(f, "({})",**dom)?;
                 }
                 write!(f, " -> ")?;
-                write!(f, "{}", cod)
+                write!(f, "{}", **cod)
             }
-            TypeNode::Forall(atom, typ) => write!(f, "[{}] -> {}", atom, typ),
+            TypeNode::Forall(atom, typ) => write!(f, "[{}] -> {}", atom, **typ),
         }
     }
 }

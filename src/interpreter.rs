@@ -33,8 +33,8 @@ pub fn repl(runtime: &mut Runtime) {
                         Ok(definition) => {
                             match runtime.define(&definition) {
                                 Ok(()) => {
-                                    let Def(name, typ, _body) = &definition;
-                                    println!("=> {} : {}", name, typ);
+                                    let Def(name, typ, _body) = definition;
+                                    println!("=> {} : {}", name, *typ);
                                 },
                                 Err(err) => println!("Error: {:?}", err),
                             }
@@ -53,7 +53,7 @@ pub fn repl(runtime: &mut Runtime) {
                                 Ok(typ) => {
                                     runtime.add_holes(number_of_new_holes);
                                     let value = runtime.eval(&term, Context::empty());
-                                    println!("=> {:?} : {}", &value, &typ);
+                                    println!("=> {:?} : {}", &value, *typ);
                                 },
                                 Err(type_error) => println!("Type Error: {:?}", &type_error),
                             }

@@ -189,7 +189,7 @@ fn check_type_match_arm(
 
     while let TypeNode::Arrow(dom, cod) = ctor_typ.as_ref() {
         pattern_types.push(dom.clone());
-        ctor_typ = cod;
+        ctor_typ = &cod;
     }
 
     if pattern_names.len() != pattern_types.len() {
