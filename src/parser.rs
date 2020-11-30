@@ -119,7 +119,7 @@ impl Tokenizer {
                     None => tokens.push(Token::Equals),
                 }
             } else {
-                panic!("Uh oh #3");
+                panic!("Unexpected character while parsing: {}", head_char);
             }
         }
         tokens

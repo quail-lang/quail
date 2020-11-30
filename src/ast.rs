@@ -1,6 +1,7 @@
 use std::rc;
 use std::fmt;
 
+#[derive(Clone, Debug)]
 pub struct Program {
     pub items: Vec<Item>,
 }
@@ -18,6 +19,7 @@ impl Program {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Item {
     Def(String, Term),
 }
