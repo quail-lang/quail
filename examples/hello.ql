@@ -1,1 +1,1 @@
-def main = println (Succ (Succ Zero))
+def main = println (succ (succ zero))

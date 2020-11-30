@@ -1,80 +1,80 @@
-def one = Succ Zero
-def two = Succ one
-def three = Succ two
+def one = succ zero
+def two = succ one
+def three = succ two
 def four = add two two
-def five = Succ four
+def five = succ four
 
 def one_hundred = mul four (mul five five)
 
 def sub = fun n m =>
     match m
-        with Zero => n
-        with Succ m' => (
+        with zero => n
+        with succ m' => (
             match n
-                with Zero => Zero
-                with Succ n' => sub n' m'
+                with zero => zero
+                with succ n' => sub n' m'
         )
 
 def rem  = fun n m =>
     match less_than n m
-        with True => n
-        with False => rem (sub n m) m
+        with true => n
+        with false => rem (sub n m) m
 
-def is_factor_of = fun n m => eq (rem m n) Zero
+def is_factor_of = fun n m => eq (rem m n) zero
 
 def count_factors_iter = fun n k acc =>
     match k
-        with Zero => acc
-        with Succ k' => (
+        with zero => acc
+        with succ k' => (
             match is_factor_of k n
-                with True => count_factors_iter n k' (Succ acc)
-                with False => count_factors_iter n k' acc
+                with true => count_factors_iter n k' (succ acc)
+                with false => count_factors_iter n k' acc
         )
 
-def count_factors = fun n => count_factors_iter n n Zero
+def count_factors = fun n => count_factors_iter n n zero
 
 def is_prime = fun n => eq (count_factors n) two
 
 def eq = fun n m =>
     match n
-        with Zero => (
+        with zero => (
             match m
-                with Zero => True
-                with Succ x => False
+                with zero => true
+                with succ x => false
         )
-        with Succ n' => (
+        with succ n' => (
             match m
-                with Zero => False
-                with Succ m' => eq n' m'
+                with zero => false
+                with succ m' => eq n' m'
         )
 
 def less_than = fun n m =>
-    less_than_eq (Succ n) m
+    less_than_eq (succ n) m
 
 def less_than_eq = fun n m =>
     match n
-        with Zero => True
-        with Succ n' => (
+        with zero => true
+        with succ n' => (
             match m
-                with Zero => False
-                with Succ m' => less_than_eq n' m'
+                with zero => false
+                with succ m' => less_than_eq n' m'
         )
 
 def add = fun n m =>
     match n
-        with Zero => m
-        with Succ n => Succ (add n m)
+        with zero => m
+        with succ n => succ (add n m)
 
 def mul = fun n m =>
     match n
-        with Zero => Zero
-        with Succ n => add m (mul n m)
+        with zero => zero
+        with succ n => add m (mul n m)
 
 
 def pow = fun n m =>
     match m
-        with Zero => Succ Zero
-        with Succ m' => mul n (pow n m')
+        with zero => succ zero
+        with succ m' => mul n (pow n m')
 
 def sixteen = pow two (pow two two)
 
@@ -85,8 +85,8 @@ def repeat =
 def repeat_iter =
     fun f n k =>
         match k
-            with Zero => Zero
-            with Succ k' =>
+            with zero => zero
+            with succ k' =>
                 let x = f (sub n k)
                 in (repeat_iter f n k')
 
@@ -94,7 +94,7 @@ def id = fun x => x
 
 def print_prime = fun n =>
     match is_prime n
-        with False => Zero
-        with True => println n
+        with false => zero
+        with true => println n
 
 def main = repeat print_prime sixteen

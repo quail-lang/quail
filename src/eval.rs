@@ -18,10 +18,10 @@ fn succ_prim(v: Value) -> Value {
     match v.clone() {
         Value::Nat(n) => Value::Nat(n + 1),
         Value::Ctor(tag, _) => {
-            if tag == "Zero" {
-                Value::Ctor("Succ".into(), vec![Value::Ctor("Zero".into(), vec![])])
-            } else if tag == "Succ" {
-                Value::Ctor("Succ".into(), vec![v.clone()])
+            if tag == "zero" {
+                Value::Ctor("succ".into(), vec![Value::Ctor("zero".into(), vec![])])
+            } else if tag == "succ" {
+                Value::Ctor("succ".into(), vec![v.clone()])
             } else {
                 panic!("Invalid thing to succ: {:?}", &v)
             }
@@ -68,10 +68,11 @@ pub fn prelude_ctx() -> Context {
         .extend(&"pred".into(), Value::Prim(rc::Rc::new(Box::new(pred_prim))))
         .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))))
         .extend(&"ifzero".into(), Value::Prim(rc::Rc::new(Box::new(ifzero_prim))))
-        .extend(&"Zero".into(), Value::Ctor("Zero".into(), Vec::new()))
-        .extend(&"Succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
-        .extend(&"True".into(), Value::Ctor("True".into(), Vec::new()))
-        .extend(&"False".into(), Value::Ctor("False".into(), Vec::new()))
+        .extend(&"zero".into(), Value::Ctor("zero".into(), Vec::new()))
+        .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
+        .extend(&"true".into(), Value::Ctor("true".into(), Vec::new()))
+        .extend(&"false".into(), Value::Ctor("false".into(), Vec::new()))
+
 }
 
 pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
