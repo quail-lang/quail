@@ -9,6 +9,7 @@ use crate::typecheck::TypeNode;
 use crate::typecheck::TypeContext;
 use crate::typecheck::Type;
 use crate::ast::Tag;
+use crate::runtime::Runtime;
 
 
 #[derive(Debug, Clone)]
@@ -139,14 +140,14 @@ pub fn builtins_type_ctx() -> TypeContext {
         .extend("show", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Str".to_string()).into()).into())
 }
 
-fn println_prim(vs: Vec<Value>) -> Value {
+fn println_prim(_runtime: &mut Runtime, vs: Vec<Value>) -> Value {
     assert_eq!(vs.len(), 1, "println must have exactly one argument");
     let v = vs[0].clone();
     println!("{:?}", v);
     Value::Ctor("unit".into(), Vec::new())
 }
 
-fn show_prim(vs: Vec<Value>) -> Value {
+fn show_prim(runtime: &mut Runtime, vs: Vec<Value>) -> Value {
     assert_eq!(vs.len(), 1, "show must have exactly one argument");
     let v = vs[0].clone();
     match &v {
@@ -155,7 +156,9 @@ fn show_prim(vs: Vec<Value>) -> Value {
                 Value::Str(format!("{}", nat_to_u64(v)))
             } else if tag == "nil" || tag == "cons" {
                 let val_vec = list_to_vec(v.clone());
-                let str_value_vec: Vec<Value> = val_vec.into_iter().map(|v| show_prim(vec![v])).collect();
+                let str_value_vec: Vec<Value> = val_vec.into_iter()
+                    .map(|v| show_prim(runtime, vec![v]))
+                    .collect();
                 let s: String = format!("{:?}", str_value_vec);
                 Value::Str(s)
             } else {

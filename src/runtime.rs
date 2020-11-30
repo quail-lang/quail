@@ -201,7 +201,7 @@ impl Runtime {
                 Value::Ctor(tag.to_string(), new_contents)
             },
             Value::Prim(prim) => {
-                prim(args)
+                prim(self, args)
             },
             _ => panic!(format!("Applied arguments to non-function {:?}", func)),
         }

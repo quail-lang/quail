@@ -3,6 +3,8 @@ use std::fmt;
 
 use crate::typecheck::Type;
 use crate::tokenizer::Loc;
+use crate::runtime::Runtime;
+
 
 #[derive(Clone, Debug)]
 pub struct Module {
@@ -51,7 +53,7 @@ pub enum Value {
     Ctor(Tag, Vec<Value>),
     CoCtor(Tag, Vec<Value>),
     Fun(String, Term, Context),
-    Prim(rc::Rc<Box<Fn(Vec<Value>) -> Value>>),
+    Prim(rc::Rc<Box<Fn(&mut Runtime, Vec<Value>) -> Value>>),
     Str(String),
     Thunk(Term, Context),
 }
