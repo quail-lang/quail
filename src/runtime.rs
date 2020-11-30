@@ -20,24 +20,56 @@ use ast::MatchArm;
 use builtins::TypeDef;
 use crate::typecontext::TypeContext;
 
+///
+/// Runtime is the global store for all of the information loaded into the program.
+///
 #[derive(Debug)]
 pub struct Runtime {
+    /// Keeps track of which modules have been loaded into the Runtime
+    /// already. This is currently being used to break cyclic imports.
     pub imports: Vec<String>,
+
+    /// holes - keeps track of what values have been supplied for each hole.
     pub holes: HashMap<HoleId, Value>,
+
+    /// The REPL and hole-filling mode both use rustyline, which is
+    /// a binding around readline. This filename needs to be preserved so that given
+    /// a new line of input, it can record it to this file.
+    ///
+    /// This value uses the dirs::config_dir() function of the dirs crate. It will
+    /// likely pick out something like $HOME/.config/quail/history as the location
+    /// to save the user's history.
     pub readline_file: String,
+
+    /// The rustyline Editor. This is a handle to interact with the readline library.
     pub editor: rustyline::Editor<()>,
+
+    /// This keeps track of the number of holes. This information is not
+    /// captured by the holes field because the holes HashMap is sparse. The
+    /// number_of_holes value is used to inform the parser which HoleID to start with
+    /// as it parses a new term.
     pub number_of_holes: u64,
 
+    /// This keeps track of the builtin typedef data for inductive
+    /// types, such as Nat and Bool.
     pub inductive_typedefs: HashMap<String, TypeDef>,
 
+    /// Tracks the value and types of all of the
+    /// definitions of top-level bindings that have been loaded into the Runtime.
     pub definition_ctx: Context,
+    /// Tracks types of all of the definitions of top-level bindings
+    /// that have been loaded into the Runtime.
     pub definition_type_ctx: TypeContext,
 
+    /// Tracks the values of the builtins, like println and show.
     pub builtin_ctx: Context,
+    /// Tracks the types of the builtins, like println and show.
     pub builtin_type_ctx: TypeContext,
 }
 
 impl Runtime {
+    /// Creates a new Runtime with no modules loaded. The inductive typedefs are defined, as well as the builtins.
+    /// Sets up the history file, creating it if it doesn't exist.
     pub fn new() -> Self {
         let readline_file = dirs::config_dir()
             .expect("User does not have a home directory??")
@@ -83,6 +115,9 @@ impl Runtime {
         }
     }
 
+    /// Imports a module. `name` is the name of the module. The filepath is given by
+    /// the name of the module with `.ql` appended to the end. Modules are searched in
+    /// the user's current working directory.
     pub fn import(&mut self, name: &str) -> Result<(), RuntimeError> {
         let mut import_filename = name.to_string();
         import_filename.push_str(".ql");
@@ -100,6 +135,18 @@ impl Runtime {
         self.load_module(filename, basedir, true)
     }
 
+    /// Loads a  a module. `filename` is given without the directory part. For instance,
+    /// "main.ql". `basedir`, on the other hand, is the name of the directory. So the actual
+    /// filepath would be `basedir.join(filename)`. We pass `basedir` in as a separate part so
+    /// that we can import any modules specified by this module.
+    ///
+    /// `is_main` dictates whether this is the first module to be loaded by the ruletime, and
+    /// thus, the one whose main we should use. When `load_module` calls itself to import a
+    /// module recursively, it will do so with `is_main` set to `false`.
+    ///
+    /// Loading a module will have the effect of parsing the file, adding any new holes found
+    /// in it, recursively loading any imports found in the file, typechecking any definitions,
+    /// and then adding those definitions to the Runtime.
     fn load_module(
         &mut self,
         filename: &std::path::Path,
@@ -144,6 +191,7 @@ impl Runtime {
         Ok(())
     }
 
+    /// Append a new definition to the Runtime after typechecking it.
     pub fn define(&mut self, definition: &Def) -> Result<(), RuntimeError> {
         let Def(name, typ, body) = definition;
         let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(&name, typ.clone());
@@ -155,6 +203,8 @@ impl Runtime {
         Ok(())
     }
 
+    /// Calculate the HoleId to the next hole loaded into the Runtime. Used as an input whenever
+    /// running the parser.
     pub fn next_hole_id(&self) -> HoleId {
         self.number_of_holes as HoleId
     }
@@ -167,6 +217,7 @@ impl Runtime {
         self.definition_ctx.lookup("main", 0).expect("There should be a main in your module");
     }
 
+    /// Reads a line using the rustyline readline library and saves it to the user's history file.
     pub fn readline(&mut self) -> Result<String, ReadlineError> {
         let line = self.editor.readline("> ")?;
         self.editor.add_history_entry(line.as_str());
@@ -174,15 +225,18 @@ impl Runtime {
         Ok(line)
     }
 
+    /// Fills a given hole with a given value.
     pub fn fill_hole(&mut self, hole_id: HoleId, value: Value) {
         self.holes.insert(hole_id, value);
     }
 
+    /// Retrieves a value for the given hole.
     pub fn hole_value(&self, hole_id: HoleId) -> Option<Value> {
         assert!((hole_id as u64) < self.number_of_holes, "Invalid HoleId!");
         self.holes.get(&hole_id).cloned()
     }
 
+    /// Applies to a function its list of arguments and returns the result.
     fn apply(self: &mut Runtime, func: Value, args: Vec<Value>) -> Value {
         match &func {
             Value::Fun(x, body, local_ctx) => {
@@ -214,6 +268,9 @@ impl Runtime {
         }
     }
 
+    /// Evaluates a term in a given local context and returns the result.
+    // We have the following directive for reasons I don't really understand, but
+    // since warnings are errors in the CI, I disable the warning.
     #[allow(mutable_borrow_reservation_conflict)]
     pub fn eval(self: &mut Runtime, t: Term, ctx: Context) -> Value {
         match t.as_ref() {
