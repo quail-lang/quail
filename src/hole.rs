@@ -1,14 +1,14 @@
 use rustyline::error::ReadlineError;
 
 use crate::ast;
-use crate::eval;
+use crate::runtime;
 use crate::parser;
 
 use ast::Value;
 use ast::HoleInfo;
 use ast::Context;
 use ast::Def;
-use eval::Runtime;
+use runtime::Runtime;
 
 pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
     match runtime.holes.get_mut(&hole_info.hole_id) {
@@ -26,7 +26,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                             Some(Command::Fill(term_text)) => {
                                 match parser::parse_term(&term_text) {
                                     Ok(term) => {
-                                        let value = eval::eval(term, ctx.clone(), runtime);
+                                        let value = runtime::eval(term, ctx.clone(), runtime);
                                         println!("=> {:?}", &value);
                                         runtime.fill_hole(hole_info.hole_id, value.clone());
                                         return value;
@@ -37,7 +37,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                             Some(Command::Eval(term_text)) => {
                                 match parser::parse_term(&term_text) {
                                     Ok(term) => {
-                                        let value = eval::eval(term, ctx.clone(), runtime);
+                                        let value = runtime::eval(term, ctx.clone(), runtime);
                                         println!("=> {:?}", &value);
                                     },
                                     Err(e) => println!("There was an error {:?}", e),

@@ -1,7 +1,7 @@
 pub mod tokenizer;
 pub mod parser;
 pub mod ast;
-pub mod eval;
+pub mod runtime;
 pub mod typecheck;
 pub mod hole;
 pub mod builtins;
@@ -21,6 +21,6 @@ fn main() {
     let opt = Opt::from_args();
     let filename = opt.filename;
     println!("{}", include_str!("../assets/quail.txt"));
-    let mut runtime = eval::Runtime::load(filename);
+    let mut runtime = runtime::Runtime::load(filename);
     runtime.exec();
 }

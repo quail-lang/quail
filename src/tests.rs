@@ -1,7 +1,7 @@
 #![cfg(test)]
 use std::fs;
 
-use crate::eval;
+use crate::runtime::Runtime;
 
 #[test]
 fn run_examples() {
@@ -9,7 +9,7 @@ fn run_examples() {
     for path in paths {
         let filename = path.expect("Couldn't open file").path();
         println!("{:?}", filename);
-        let mut runtime = eval::Runtime::load(filename);
+        let mut runtime = Runtime::load(filename);
         runtime.exec();
     }
 }
