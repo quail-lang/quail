@@ -1,1 +1,1 @@
-(fun x => x) 42
+def main = (fun x => x) 42

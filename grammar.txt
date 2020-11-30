@@ -1,0 +1,10 @@
+PROGRAM := ITEM*
+ITEM := DEF
+DEF := def VAR = TERM
+TERM := TERMPART+
+TERMPART := VAR | LAMBDA | LET | ( TERM )
+VAR := x, y, z, ...
+APP := TERM TERM
+LIT := 0, 1, ...
+LAMBDA := fn VAR => TERM
+LET := let VAR = TERM in TERM

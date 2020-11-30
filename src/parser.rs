@@ -7,6 +7,7 @@ pub enum Token {
     Lit(u64),
     Lambda,
     Let,
+    Def,
     Equals,
     In,
     FatArrow,
@@ -165,6 +166,7 @@ impl Tokenizer {
         let keywords: HashMap<String, Token> = vec![
             ("fun".to_string(), Token::Lambda),
             ("let".to_string(), Token::Let),
+            ("def".to_string(), Token::Def),
             ("in".to_string(), Token::In),
         ].iter().cloned().collect();
         let first_char = self.input[self.cur];
@@ -332,12 +334,25 @@ impl Parser {
         Ok(term)
     }
 
-    fn parse(&mut self) -> Result<ast::Term, ParseErr> {
-        let term = self.parse_term();
-        match self.peek() {
-            None => term,
-            Some(token) => Err(format!("Unexpected {:?} token at end of stream", token)),
+    fn parse_def(&mut self) -> Result<ast:: Item, ParseErr> {
+        self.consume_expect(Token::Def)?;
+        let binding_name = self.consume_identifier()?;
+        self.consume_expect(Token::Equals)?;
+        let body = self.parse_term()?;
+        Ok(ast::Item::Def(binding_name, body))
+    }
+
+    fn parse_program(&mut self) -> Result<ast:: Program, ParseErr> {
+        let mut items = Vec::new();
+        while let Some(token) = self.peek() {
+            if token == Token::Def {
+                let item = self.parse_def()?;
+                items.push(item);
+            } else {
+                return Err(format!("Expected an item declaration, found {:?}", token));
+            }
         }
+        Ok(ast::Program { items })
     }
 }
 
@@ -352,17 +367,26 @@ mod test_parser {
             ast::TermNode::Var("x".into()).into(),
         ).into();
         assert_eq!(
-            parse("fun x => x"),
+            parse_term("fun x => x"),
             Ok(identity_fn),
         );
     }
 }
 
-pub fn parse(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
+pub fn parse_term(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
 
     let mut parser = Parser::new(tokens);
 
-    parser.parse()
+    parser.parse_term()
+}
+
+pub fn parse_program(input: impl Into<String>) -> Result<ast::Program, ParseErr> {
+    let mut toker = Tokenizer::new(input);
+    let tokens = toker.tokenize();
+
+    let mut parser = Parser::new(tokens);
+
+    parser.parse_program()
 }

@@ -1,9 +1,16 @@
 use std::rc;
 
+use crate::ast::Program;
 use crate::ast::Term;
+use crate::ast::Item;
 
 use crate::ast::Value;
 use crate::ast::Context;
+
+pub fn exec(program: Program) -> Value {
+    let Item::Def(_, main_body) = program.item("main").expect("There should be a main in your program");
+    eval(main_body.clone())
+}
 
 fn succ_prim(v: Value) -> Value {
     match v {
@@ -12,11 +19,17 @@ fn succ_prim(v: Value) -> Value {
     }
 }
 
+fn println_prim(v: Value) -> Value {
+    println!("{:?}", v);
+    Value::Nat(0)
+}
+
 pub fn eval(t: Term) -> Value {
     //eval_ctx(t, Context::empty())
 
     let ctx = Context::empty()
-        .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))));
+        .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
+        .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))));
 
     eval_ctx(t, ctx)
 }

@@ -1,6 +1,27 @@
 use std::rc;
 use std::fmt;
 
+pub struct Program {
+    pub items: Vec<Item>,
+}
+
+impl Program {
+    pub fn item(&self, name: impl Into<String>) -> Option<&Item> {
+        let name: String = name.into();
+        for item in &self.items {
+            let Item::Def(item_name, _) = &item;
+            if *item_name == name {
+                return Some(item);
+            }
+        }
+        None
+    }
+}
+
+pub enum Item {
+    Def(String, Term),
+}
+
 #[derive(Clone, Debug)]
 pub enum Type {
     Nat,
