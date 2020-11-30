@@ -22,41 +22,9 @@ pub enum Token {
     With,
 }
 
-
 pub struct Tokenizer {
     input: Vec<char>,
     cur: usize,
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    #[test]
-    fn tokenize_empty_string() {
-        let mut toker = Tokenizer::new("");
-        assert_eq!(
-            toker.tokenize(),
-            vec![]
-        );
-    }
-
-    #[test]
-    fn tokenize_test_a() {
-        let mut toker = Tokenizer::new("(a)");
-        assert_eq!(
-            toker.tokenize(),
-            vec![Token::LeftParen, Token::Ident("a".to_string()), Token::RightParen]
-        );
-    }
-
-    #[test]
-    fn tokenize_test_b() {
-        let mut toker = Tokenizer::new("fun x => x");
-        assert_eq!(
-            toker.tokenize(),
-            vec![Token::Lambda, Token::Ident("x".to_string()), Token::FatArrow, Token::Ident("x".to_string())]
-        );
-    }
 }
 
 impl Tokenizer {
@@ -439,23 +407,6 @@ impl Parser {
     }
 }
 
-#[cfg(test)]
-mod test_parser {
-    use super::*;
-
-    #[test]
-    fn test_a() {
-        let identity_fn: ast::Term = ast::TermNode::Lam(
-            "x".into(),
-            ast::TermNode::Var("x".into()).into(),
-        ).into();
-        assert_eq!(
-            parse_term("fun x => x"),
-            Ok(identity_fn),
-        );
-    }
-}
-
 pub fn parse_term(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
@@ -472,4 +423,48 @@ pub fn parse_program(input: impl Into<String>) -> Result<ast::Program, ParseErr>
     let mut parser = Parser::new(tokens);
 
     parser.parse_program()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_a() {
+        let identity_fn: ast::Term = ast::TermNode::Lam(
+            "x".into(),
+            ast::TermNode::Var("x".into()).into(),
+        ).into();
+        assert_eq!(
+            parse_term("fun x => x"),
+            Ok(identity_fn),
+        );
+    }
+
+    #[test]
+    fn tokenize_empty_string() {
+        let mut toker = Tokenizer::new("");
+        assert_eq!(
+            toker.tokenize(),
+            vec![]
+        );
+    }
+
+    #[test]
+    fn tokenize_test_a() {
+        let mut toker = Tokenizer::new("(a)");
+        assert_eq!(
+            toker.tokenize(),
+            vec![Token::LeftParen, Token::Ident("a".to_string()), Token::RightParen]
+        );
+    }
+
+    #[test]
+    fn tokenize_test_b() {
+        let mut toker = Tokenizer::new("fun x => x");
+        assert_eq!(
+            toker.tokenize(),
+            vec![Token::Lambda, Token::Ident("x".to_string()), Token::FatArrow, Token::Ident("x".to_string())]
+        );
+    }
 }
