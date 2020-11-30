@@ -164,7 +164,7 @@ fn show_prim(runtime: &mut Runtime, vs: Vec<Value>) -> Value {
             } else {
                 Value::Str(format!("{:?}", v))
             }
-        }
+        },
         _ => panic!("Can't show this {:?}", &v),
     }
 }

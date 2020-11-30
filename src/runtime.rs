@@ -191,6 +191,7 @@ impl Runtime {
                     Some((v, vs_remaining)) => {
                         let new_ctx = local_ctx.extend(&x, v.clone());
                         let new_func = self.eval(body.clone(), new_ctx);
+                        let new_func = self.force(&new_func);
                         self.apply(new_func, vs_remaining.to_vec())
                     },
                 }
@@ -201,6 +202,7 @@ impl Runtime {
                 Value::Ctor(tag.to_string(), new_contents)
             },
             Value::Prim(prim) => {
+                let args = args.into_iter().map(|a| self.force_deep(&a)).collect();
                 prim(self, args)
             },
             _ => panic!(format!("Applied arguments to non-function {:?}", func)),
@@ -222,7 +224,10 @@ impl Runtime {
             },
             TermNode::App(f, vs) => {
                 let f_value = self.eval(f.clone(), ctx.clone());
-                let vs_values: Vec<Value> = vs.iter().map(|v| self.eval(v.clone(), ctx.clone())).collect();
+                let f_value = self.force(&f_value);
+                let vs_values: Vec<Value> = vs.iter()
+                    .map(|v| Value::Thunk(v.clone(), ctx.clone()))
+                    .collect();
                 self.apply(f_value, vs_values)
             },
             TermNode::Let(x, v, body) => {
@@ -232,6 +237,7 @@ impl Runtime {
             },
             TermNode::Match(t, match_arms) => {
                 let t_value = self.eval(t.clone(), ctx.clone());
+                let t_value = self.force(&t_value);
                 match t_value {
                     Value::Ctor(tag, contents) => {
                         let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
@@ -249,6 +255,27 @@ impl Runtime {
             TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
             TermNode::As(term, _typ) => self.eval(term.clone(), ctx),
         }
+    }
+
+    pub fn force(&mut self, value: &Value) -> Value {
+        let mut result = value.clone();
+        while let Value::Thunk(t, ctx) = &result {
+            result = self.eval(t.clone(), ctx.clone());
+        }
+        result
+    }
+
+    pub fn force_deep(&mut self, value: &Value) -> Value {
+        let mut result = value.clone();
+        while let Value::Thunk(t, ctx) = result {
+            result = self.eval(t.clone(), ctx.clone());
+        }
+
+        if let Value::Ctor(tag, contents) = result {
+            let contents = contents.iter().map(|v| self.force_deep(v)).collect();
+            result = Value::Ctor(tag.to_string(), contents);
+        }
+        result
     }
 }
 
