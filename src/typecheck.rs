@@ -117,18 +117,32 @@ pub fn check_type_match(
 ) -> Result<(), TypeErr> {
     let match_tags: Vec<CtorTag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
     // TODO: handle bottom type
-    let first_ctor_tag = &match_tags.iter().cloned().collect::<Vec<CtorTag>>()[0];
-    match lookup_typedef_by_ctor_tag(first_ctor_tag, inductive_typedefs) {
-        None => Err(format!("Unknown ctor {:?}", first_ctor_tag)),
-        Some(inductive_typedef) => {
-            let typedef_tags = inductive_typedef.ctor_tags();
-            analyze_coverage(&typedef_tags, &match_tags)?;
-            check_type(discriminee.clone(), ctx.clone(), inductive_typedefs, TypeNode::Atom(inductive_typedef.name.to_string()).into())?;
-            for match_arm in match_arms {
-                check_type_match_arm(match_arm, inductive_typedef, &ctx, inductive_typedefs, &typ)?;
-            }
-            Ok(())
-        },
+    if let Some(first_ctor_tag) = &match_tags.iter().cloned().collect::<Vec<CtorTag>>().get(0) {
+        match lookup_typedef_by_ctor_tag(first_ctor_tag, inductive_typedefs) {
+            None => Err(format!("Unknown ctor {:?}", first_ctor_tag)),
+            Some(inductive_typedef) => {
+                let typedef_tags = inductive_typedef.ctor_tags();
+                analyze_coverage(&typedef_tags, &match_tags)?;
+                check_type(
+                    discriminee.clone(),
+                    ctx.clone(),
+                    inductive_typedefs,
+                    TypeNode::Atom(inductive_typedef.name.to_string()).into(),
+                )?;
+                for match_arm in match_arms {
+                    check_type_match_arm(match_arm, inductive_typedef, &ctx, inductive_typedefs, &typ)?;
+                }
+                Ok(())
+            },
+        }
+    } else {
+        // NOTE: There is an assumption here that Bot is the only empty type!
+        check_type(
+            discriminee.clone(),
+            ctx.clone(),
+            inductive_typedefs,
+            TypeNode::Atom("Bot".to_string()).into(),
+        )
     }
 }
 

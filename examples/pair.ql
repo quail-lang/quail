@@ -11,4 +11,4 @@
 #    let x = println (fst p) in
 #    println (snd p)
 
-def main : Unit = unit
+def main : Top = top

@@ -10,4 +10,4 @@ def fact : Nat -> Nat = fun n =>
         with zero => one
         with succ n' => mul n (fact n')
 
-def main : Unit = println (show (fact five))
+def main : Top = println (show (fact five))

@@ -317,9 +317,8 @@ impl Parser {
         Ok(MatchArm(idents, body))
     }
 
-    fn parse_match_arm_plus(&mut self) -> Result<Vec<MatchArm>, ParseErr> {
+    fn parse_match_arm_star(&mut self) -> Result<Vec<MatchArm>, ParseErr> {
         let mut match_arms = Vec::new();
-        match_arms.push(self.parse_match_arm()?);
         while let Some(Token::With(_)) = self.peek() {
             match_arms.push(self.parse_match_arm()?);
         }
@@ -329,7 +328,7 @@ impl Parser {
     fn parse_match(&mut self) -> Result<Term, ParseErr> {
         self.consume_expect_match()?;
         let discriminee = self.parse_term()?;
-        let match_arms = self.parse_match_arm_plus()?;
+        let match_arms = self.parse_match_arm_star()?;
         Ok(TermNode::Match(discriminee, match_arms).into())
     }
 

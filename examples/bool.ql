@@ -13,7 +13,7 @@ def or : Bool -> Bool -> Bool = fun a b =>
         with true => true
         with false => b
 
-def main : Unit =
+def main : Top =
     let v = (
         match and true true
             with true => succ zero

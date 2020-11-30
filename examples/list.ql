@@ -56,4 +56,4 @@ def take : Nat -> List -> List = fun n xs =>
 def one_two_three : List =
     cons one (cons two (cons three nil))
 
-def main : Unit = println (show (length (one_two_three)))
+def main : Top = println (show (length (one_two_three)))

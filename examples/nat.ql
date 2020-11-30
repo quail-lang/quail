@@ -68,4 +68,4 @@ def eq : Nat -> Nat -> Bool = fun n m =>
                 with succ m' => eq n' m'
         )
 
-def main : Unit = println (show (add two three))
+def main : Top = println (show (add two three))

@@ -81,11 +81,16 @@ pub fn builtin_inductive_typedefs() -> Vec<InductiveTypeDef> {
         ],
     );
 
-    let unit_type = InductiveTypeDef::new(
-        "Unit",
+    let top_type = InductiveTypeDef::new(
+        "Top",
         &[
-            ("unit".to_string(), &[]),
+            ("top".to_string(), &[]),
         ],
+    );
+
+    let bot_type = InductiveTypeDef::new(
+        "Bot",
+        &[],
     );
 
     let list_type = InductiveTypeDef::new(
@@ -99,7 +104,7 @@ pub fn builtin_inductive_typedefs() -> Vec<InductiveTypeDef> {
         ],
     );
 
-    vec![nat_type, bool_type, unit_type, list_type]
+    vec![nat_type, bool_type, top_type, bot_type, list_type]
 }
 
 pub fn builtins_ctx() -> Context {
@@ -112,7 +117,7 @@ pub fn builtins_type_ctx() -> TypeContext {
     TypeContext::empty()
         .extend("println", TypeNode::Arrow(
                 TypeNode::Atom("Str".to_string()).into(),
-                TypeNode::Atom("Unit".to_string()).into(),
+                TypeNode::Atom("Top".to_string()).into(),
         ).into())
         .extend("show", TypeNode::Arrow(TypeNode::Atom("Nat".to_string()).into(), TypeNode::Atom("Str".to_string()).into()).into())
 }

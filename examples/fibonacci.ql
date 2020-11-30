@@ -17,4 +17,4 @@
 #            )
 #
 #def main : Nat = map (fun n => println (show (fib n))) (up_to (add three ten))
-def main : Unit = unit
+def main : Top = top

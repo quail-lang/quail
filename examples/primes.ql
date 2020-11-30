@@ -25,20 +25,20 @@ def is_prime : Nat -> Bool = fun n =>
 
 def sixteen : Nat = pow two (pow two two)
 
-def repeat_iter : (Nat -> Unit) -> Nat -> Nat -> Unit = fun f n k =>
+def repeat_iter : (Nat -> Top) -> Nat -> Nat -> Top = fun f n k =>
     match k
-        with zero => unit
+        with zero => top
         with succ k' =>
             let x = f (sub n k)
             in (repeat_iter f n k')
 
 
-def repeat : (Nat -> Unit) -> Nat -> Unit = fun f n =>
+def repeat : (Nat -> Top) -> Nat -> Top = fun f n =>
     repeat_iter f n n
 
-def print_prime : Nat -> Unit = fun n =>
+def print_prime : Nat -> Top = fun n =>
     match is_prime n
-        with false => unit
+        with false => top
         with true => println (show n)
 
-def main : Unit = repeat print_prime sixteen
+def main : Top = repeat print_prime sixteen
