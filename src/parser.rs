@@ -319,6 +319,10 @@ impl Parser {
                     self.consume();
                     Ok(Some(TermNode::StrLit(contents).into()))
                 },
+                Token::Nat(_loc, contents) => {
+                    self.consume();
+                    Ok(Some(usize_to_nat_term(contents).into()))
+                },
                 _ => Ok(None),
             },
             None => Ok(None),
@@ -499,4 +503,17 @@ pub fn parse_def(starting_hole_id: HoleId, source: Option<&Path>, input: &str) -
 
     let mut parser = Parser::new(starting_hole_id, tokens);
     parser.parse_def()
+}
+
+fn usize_to_nat_term(v: usize) -> Term {
+    let mut result: Term = TermNode::Var(Variable { name: "zero".to_owned(), layer: 0 }).into();
+
+    for _ in 0..v {
+        result = TermNode::App(
+            TermNode::Var(Variable { name: "succ".to_owned(), layer: 0 }).into(),
+            vec![result.clone()],
+        ).into();
+    }
+
+    result
 }

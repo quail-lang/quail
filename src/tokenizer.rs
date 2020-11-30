@@ -215,21 +215,24 @@ impl Tokenizer {
     }
 
     fn tokenize_nat(&mut self) -> Result<Token, TokenizeErr> {
-        #![allow(irrefutable_let_patterns)]
         let loc = self.loc.clone();
         let mut buffer = String::new();
+        match self.peek() {
+            None => return Err("Expected digit but found end of file. Good luck!".to_owned()),
+            Some(ch) => {
+                if !ch.is_ascii_digit() {
+                    return Err(format!("Expected digit but found {}.", ch));
+                }
 
-        while let consume_char = self.peek() {
-            self.consume();
-            match consume_char {
-                None => return Err("Expected \" but found end of file. Good luck!".to_string()),
-                Some(chr) => {
-                    if chr.is_ascii_digit() {
-                        buffer.push(chr);
+                while let Some(ch) = self.peek() {
+                    if ch.is_ascii_digit() {
+                        self.consume();
+                        buffer.push(ch);
+
                     } else {
                         break;
                     }
-                },
+                }
             }
         }
         let n = buffer.parse::<usize>().unwrap();
