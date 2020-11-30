@@ -5,10 +5,10 @@ use crate::runtime;
 use crate::parser;
 use crate::typecheck;
 
-use ast::Context;
 use ast::Import;
 use ast::Def;
 use runtime::Runtime;
+use runtime::Context;
 
 pub fn repl(runtime: &mut Runtime) {
     loop {

@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 use std::rc;
 
-use crate::ast;
-
-use ast::Value;
-use ast::Context;
+use crate::runtime::Value;
+use crate::runtime::Context;
 use crate::ast::Tag;
 use crate::runtime::Runtime;
 use crate::types::Type;

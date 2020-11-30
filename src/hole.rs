@@ -4,11 +4,11 @@ use crate::ast;
 use crate::runtime;
 use crate::parser;
 
-use ast::Value;
 use ast::HoleInfo;
 use ast::HoleId;
-use ast::Context;
+use runtime::Context;
 use runtime::Runtime;
+use runtime::Value;
 
 pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
     match runtime.holes.get_mut(&hole_info.hole_id) {
