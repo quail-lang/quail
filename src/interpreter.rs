@@ -17,17 +17,23 @@ pub fn repl(runtime: &mut Runtime) {
                 if line.starts_with("import") {
                     match parser::parse_import(None, &line) {
                         Ok(Import(module_name)) => {
-                            runtime.import(&module_name);
-                            println!("import successful");
+                            match runtime.import(&module_name) {
+                                Ok(()) => println!("import successful"),
+                                Err(msg) => println!("{:?}", msg),
+                            }
                         },
                         Err(e) => println!("There was an error {:?}", e),
                     }
                 } else if line.starts_with("def") {
                     match parser::parse_def(runtime.next_hole_id(), None, &line) {
                         Ok(definition) => {
-                            runtime.define(&definition);
-                            let Def(name, typ, _body) = &definition;
-                            println!("=> {} : {}", name, typ);
+                            match runtime.define(&definition) {
+                                Ok(()) => {
+                                    let Def(name, typ, _body) = &definition;
+                                    println!("=> {} : {}", name, typ);
+                                },
+                                Err(err) => println!("Error: {:?}", err),
+                            }
                         },
                         Err(e) => println!("There was an error {:?}", e),
                     }

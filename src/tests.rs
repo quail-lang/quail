@@ -10,7 +10,7 @@ fn run_examples() {
         let filename = path.expect("Couldn't open file").path();
         println!("{:?}", filename);
         let mut runtime = Runtime::new();
-        runtime.load(filename);
+        runtime.load(filename).unwrap();
         runtime.exec();
     }
 }

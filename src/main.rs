@@ -18,7 +18,7 @@ struct Opt {
         filename: Option<String>,
 }
 
-fn main() {
+fn main() -> Result<(), runtime::RuntimeError> {
     let opt = Opt::from_args();
     let filename = opt.filename;
     match filename {
@@ -29,8 +29,9 @@ fn main() {
         },
         Some(filename) => {
             let mut runtime = runtime::Runtime::new();
-            runtime.load(filename);
+            runtime.load(filename)?;
             runtime.exec();
         },
     }
+    Ok(())
 }

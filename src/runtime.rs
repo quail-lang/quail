@@ -83,24 +83,31 @@ impl Runtime {
         }
     }
 
-    pub fn import(&mut self, name: &str) {
+    pub fn import(&mut self, name: &str) -> Result<(), RuntimeError> {
         let mut import_filename = name.to_string();
         import_filename.push_str(".ql");
         let import_filename = &std::path::Path::new(&import_filename);
 
-        let basedir = std::env::current_dir().expect("You aren't in a directory somehow?");
-        self.load_module(import_filename, &basedir, false);
+        match std::env::current_dir() {
+            Ok(basedir) => self.load_module(import_filename, &basedir, false),
+            Err(err) => Err(err.into()),
+        }
     }
 
-    pub fn load(&mut self, filepath: impl AsRef<std::path::Path>) {
+    pub fn load(&mut self, filepath: impl AsRef<std::path::Path>) -> Result<(), RuntimeError> {
         let basedir = std::path::Path::new(filepath.as_ref().parent().expect("Invalid path"));
         let filename = std::path::Path::new(filepath.as_ref().file_name().expect("Invalid path"));
-        self.load_module(filename, basedir, true);
+        self.load_module(filename, basedir, true)
     }
 
-    fn load_module(&mut self, filename: &std::path::Path, basedir: &std::path::Path, is_main: bool) {
+    fn load_module(
+        &mut self,
+        filename: &std::path::Path,
+        basedir: &std::path::Path,
+        is_main: bool,
+    ) -> Result<(), RuntimeError> {
         if self.imports.contains(&filename.to_string_lossy().to_string()) {
-            return;
+            return Ok(());
         } else {
             self.imports.push(filename.to_string_lossy().to_string());
         }
@@ -108,13 +115,9 @@ impl Runtime {
         use std::fs;
         use std::io::Read;
         let mut module_text = String::new();
-        fs::File::open(&filepath)
-            .unwrap_or_else(|e| panic!(format!("There was an error when opening {:?}: {:?}", &filepath, e)))
-            .read_to_string(&mut module_text)
-            .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
+        fs::File::open(&filepath)?.read_to_string(&mut module_text)?;
 
-        let (module, number_of_new_holes) = parser::parse_module(self.next_hole_id(), Some(filename), &module_text)
-            .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
+        let (module, number_of_new_holes) = parser::parse_module(self.next_hole_id(), Some(filename), &module_text)?;
         self.add_holes(number_of_new_holes);
 
         for import in module.imports {
@@ -124,32 +127,32 @@ impl Runtime {
             import_filename.push_str(".ql");
             let import_filename = &std::path::Path::new(&import_filename);
 
-            self.load_module(import_filename, basedir, false);
+            self.load_module(import_filename, basedir, false)?;
         }
 
         for definition in module.definitions.iter() {
             let Def(name, typ, body) = definition;
             if is_main || name != "main" {
                 let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(name, typ.clone());
-                typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())
-                    .expect("That wasn't well typed:");
+                typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())?;
                 self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
                 let body_value = self.eval(body.clone(), Context::empty());
                 self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
             }
         }
+        Ok(())
     }
 
-    pub fn define(&mut self, definition: &Def) {
+    pub fn define(&mut self, definition: &Def) -> Result<(), RuntimeError> {
         let Def(name, typ, body) = definition;
         let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(&name, typ.clone());
-        typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())
-            .expect("That wasn't well typed:");
+        typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())?;
         self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
         let body_value = self.eval(body.clone(), Context::empty());
         self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
+        Ok(())
     }
 
     pub fn next_hole_id(&self) -> HoleId {
@@ -246,5 +249,20 @@ impl Runtime {
             TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
             TermNode::As(term, _typ) => self.eval(term.clone(), ctx),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct RuntimeError(String);
+
+impl std::convert::From<std::io::Error> for RuntimeError {
+    fn from(error: std::io::Error) -> Self {
+        RuntimeError(error.to_string())
+    }
+}
+
+impl std::convert::From<String> for RuntimeError {
+    fn from(error: String) -> Self {
+        RuntimeError(error)
     }
 }
