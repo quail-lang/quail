@@ -38,10 +38,6 @@ impl TypeDef {
         }
     }
 
-    pub fn as_type(&self) -> Type {
-        TypeNode::Atom(self.name.clone()).into()
-    }
-
     pub fn ctor_context(&self) -> Context {
         let ctors: Vec<&Tag> = self.ctor_types.keys().collect();
         let mut ctx = Context::empty();
