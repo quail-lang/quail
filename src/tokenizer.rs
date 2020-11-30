@@ -57,13 +57,6 @@ impl Tokenizer {
     }
 
     fn token(&mut self) -> Result<Option<Token>, TokenizeErr> {
-        let single_char_tokens: HashMap<char, Token> = vec![
-            ('(', Token::LeftParen),
-            (')', Token::RightParen),
-            ('{', Token::LeftCurly),
-            ('}', Token::RightCurly),
-        ].into_iter().collect();
-
         while let Some(head_char) = self.peek() {
             if head_char.is_ascii_whitespace() {
                 self.consume();
@@ -76,10 +69,18 @@ impl Tokenizer {
 
         match self.peek() {
             Some(head_char) => {
-                if single_char_tokens.contains_key(&head_char) {
-                    let token = single_char_tokens.get(&head_char).unwrap().clone();
+                if head_char == '(' {
                     self.consume();
-                    Ok(Some(token))
+                    Ok(Some(Token::LeftParen))
+                } else if head_char == ')' {
+                    self.consume();
+                    Ok(Some(Token::RightParen))
+                } else if head_char == '{' {
+                    self.consume();
+                    Ok(Some(Token::LeftCurly))
+                } else if head_char == '}' {
+                    self.consume();
+                    Ok(Some(Token::RightCurly))
                 } else if head_char.is_ascii_alphabetic() {
                     let token = self.tokenize_identifier()?;
                     Ok(Some(token))
