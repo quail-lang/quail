@@ -9,7 +9,7 @@ elseif exists("b:current_syntax")
 endif
 
 syn keyword QuailKeyword fun def let match with in import as
-syn match QuailIdentifier "\<[A-Za-z_][A-Za-z0-9_]*\>"
+syn match QuailIdentifier "\<[A-Za-z_][A-Za-z0-9_\$]*\>"
 syn match QuailLiteral "\<[0-9][0-9]*\>"
 syn keyword QuailStdLib succ zero false true nil cons top pair left right println
 syn keyword QuailStdLibType Nat Bool Top Bot List Pair
