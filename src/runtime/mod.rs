@@ -12,6 +12,8 @@ pub use runtime::{
 
 pub use import::{
     ImportResolver,
+    ChainedImportResolver,
     FileImportResolver,
+    FilePathImportResolver,
     ResolvedImport,
 };

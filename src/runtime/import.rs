@@ -33,3 +33,35 @@ impl ImportResolver for FileImportResolver {
         })
     }
 }
+
+pub struct FilePathImportResolver;
+
+impl ImportResolver for FilePathImportResolver {
+    fn resolve(&mut self, filepath: &str) -> Result<ResolvedImport, RuntimeError> {
+        let module_text = std::fs::read_to_string(&filepath)?;
+
+        Ok(ResolvedImport {
+            reader: Box::new(io::Cursor::new(module_text)),
+            source: filepath.to_owned(),
+        })
+    }
+}
+
+pub struct ChainedImportResolver(Box<dyn ImportResolver>, Box<dyn ImportResolver>);
+
+impl ChainedImportResolver {
+    pub fn new(a: Box<dyn ImportResolver>, b: Box<dyn ImportResolver>) -> Self {
+        ChainedImportResolver(a, b)
+    }
+}
+
+impl ImportResolver for ChainedImportResolver {
+    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, RuntimeError> {
+        let ChainedImportResolver(ira, irb) = self;
+        if let Ok(ri) = ira.resolve(import_name) {
+            Ok(ri)
+        } else {
+            irb.resolve(import_name)
+        }
+    }
+}
