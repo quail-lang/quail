@@ -2,6 +2,7 @@ use std::rc;
 
 use crate::ast::Program;
 use crate::ast::Term;
+use crate::ast::TermNode;
 use crate::ast::Item;
 
 use crate::ast::Value;
@@ -19,15 +20,45 @@ fn succ_prim(v: Value) -> Value {
     }
 }
 
+fn pred_prim(v: Value) -> Value {
+    match v {
+        Value::Nat(0) => Value::Nat(0),
+        Value::Nat(n) => Value::Nat(n - 1),
+        other => panic!(format!("Couldn't pred {:?}", other)),
+    }
+}
+
 fn println_prim(v: Value) -> Value {
     println!("{:?}", v);
     Value::Nat(0)
 }
 
+fn ifzero_prim(v: Value) -> Value {
+    if let Value::Nat(n) = v {
+        if n == 0 {
+            Value::Fun(
+                "x".to_string(),
+               TermNode::Lam("y".into(), TermNode::Var("x".into()).into()).into(),
+               Context::empty(),
+            )
+        } else {
+            Value::Fun(
+                "x".to_string(),
+                TermNode::Lam("y".into(), TermNode::Var("y".into()).into()).into(),
+                Context::empty(),
+            )
+        }
+    } else {
+        panic!(format!("Expected a number, but got {:?}", v));
+    }
+}
+
 pub fn prelude_ctx() -> Context {
     Context::empty()
         .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
+        .extend(&"pred".into(), Value::Prim(rc::Rc::new(Box::new(pred_prim))))
         .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))))
+        .extend(&"ifzero".into(), Value::Prim(rc::Rc::new(Box::new(ifzero_prim))))
 }
 
 pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
