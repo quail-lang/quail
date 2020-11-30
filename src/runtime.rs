@@ -137,8 +137,6 @@ impl Runtime {
 
                 let body_value = self.eval(body.clone(), Context::empty());
                 self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
-
-                println!("{} : {}", &name, &typ);
             }
         }
     }
