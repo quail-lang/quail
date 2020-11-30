@@ -5,12 +5,11 @@ use crate::ast;
 
 use ast::Value;
 use ast::Context;
-use crate::typecheck::TypeNode;
-use crate::typecheck::TypeContext;
-use crate::typecheck::Type;
 use crate::ast::Tag;
 use crate::runtime::Runtime;
-
+use crate::types::Type;
+use crate::types::TypeNode;
+use crate::typecontext::TypeContext;
 
 #[derive(Debug, Clone)]
 pub enum Flavor {

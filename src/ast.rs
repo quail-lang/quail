@@ -1,7 +1,7 @@
 use std::rc;
 use std::fmt;
 
-use crate::typecheck::Type;
+use crate::types::Type;
 use crate::tokenizer::Loc;
 use crate::runtime::Runtime;
 

@@ -18,7 +18,7 @@ use ast::HoleId;
 use ast::Import;
 use ast::MatchArm;
 use builtins::TypeDef;
-use typecheck::TypeContext;
+use crate::typecontext::TypeContext;
 
 #[derive(Debug)]
 pub struct Runtime {

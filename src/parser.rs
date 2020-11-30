@@ -2,8 +2,8 @@ use std::path::Path;
 
 use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
-use crate::typecheck::Type;
-use crate::typecheck::TypeNode;
+use crate::types::Type;
+use crate::types::TypeNode;
 use crate::ast;
 
 use ast::HoleId;

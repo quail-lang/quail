@@ -6,6 +6,8 @@ pub mod typecheck;
 pub mod hole;
 pub mod builtins;
 pub mod interpreter;
+pub mod types;
+pub mod typecontext;
 
 pub mod tests;
 

@@ -1,5 +1,3 @@
-use std::fmt;
-use std::rc;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
@@ -8,21 +6,9 @@ use super::ast::TermNode;
 use crate::ast::Tag;
 use crate::ast::MatchArm;
 use crate::builtins::TypeDef;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type(pub rc::Rc<TypeNode>);
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeNode {
-    Atom(String),
-    Arrow(Type, Type),
-}
-
-#[derive(Debug)]
-struct TypeContextNode(Vec<(String, Type)>);
-
-#[derive(Debug, Clone)]
-pub struct TypeContext(rc::Rc<TypeContextNode>);
+use crate::typecontext::TypeContext;
+use crate::types::Type;
+use crate::types::TypeNode;
 
 pub type TypeErr = String;
 
@@ -45,6 +31,7 @@ pub fn infer_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
                         check_type(v.clone(), ctx.clone(), inductive_typedefs, dom.clone())?;
                         result = cod.clone();
                     },
+                    TypeNode::Forall(_, _) => return Err("Can't apply to a forall.".to_string()),
                 }
             }
             Ok(result)
@@ -83,6 +70,7 @@ pub fn check_type(t: Term, ctx: TypeContext, inductive_typedefs: &HashMap<String
             match typ.as_ref() {
                 TypeNode::Atom(atom) => Err(format!("Functions need function types, but we got {}", atom)),
                 TypeNode::Arrow(dom, cod) => check_type(body.clone(), ctx.extend(x, dom.clone()), inductive_typedefs, cod.clone()),
+                TypeNode::Forall(_name, _cod) => Err(format!("Functions need function types, but we got a forall")),
             }
         },
         TermNode::App(_f, _vs) => {
@@ -222,86 +210,4 @@ fn lookup_typedef_by_ctor_tag<'a>(ctor_tag: &Tag, inductive_typedefs: &'a HashMa
         }
     }
     None
-}
-
-impl From<TypeNode> for Type {
-    fn from(tn: TypeNode) -> Self {
-        Type(rc::Rc::new(tn))
-    }
-}
-
-impl TypeContext {
-    pub fn empty() -> Self {
-        TypeContext(rc::Rc::new(TypeContextNode(Vec::new())))
-    }
-
-    pub fn lookup(&self, x: &str, k: usize) -> Option<Type> {
-        let TypeContext(rc_ctx_node) = self;
-        let TypeContextNode(var_typ_list) = rc_ctx_node.as_ref();
-        for (y, typ) in var_typ_list.iter().rev() {
-            if x == y {
-                if k == 0 {
-                    return Some(typ.clone());
-                } else {
-                    return self.lookup(x, k - 1);
-                }
-            }
-        }
-        None
-    }
-
-    pub fn extend(&self, x: &str, t: Type) -> TypeContext {
-        let TypeContext(rc_ctx_node) = self;
-        let TypeContextNode(var_val_list) = rc_ctx_node.as_ref();
-        let mut extended_var_val_list = var_val_list.clone();
-        extended_var_val_list.push((x.to_string(), t.clone()));
-        TypeContext(rc::Rc::new(TypeContextNode(extended_var_val_list)))
-    }
-
-    pub fn extend_many(&self, bindings: &[(String, Type)]) -> TypeContext {
-        let mut ctx = self.clone();
-        for (name, value) in bindings.iter() {
-            ctx = ctx.extend(name, value.clone());
-        }
-        ctx
-    }
-
-    pub fn append(&self, ctx: TypeContext) -> TypeContext {
-        let mut result_ctx = self.clone();
-        for (name, value) in ctx.bindings().iter() {
-            result_ctx = result_ctx.extend(name, value.clone());
-        }
-        result_ctx
-    }
-
-    pub fn bindings(&self) -> Vec<(String, Type)> {
-        let TypeContext(context_node_rc) = self;
-        let TypeContextNode(bindings) = context_node_rc.as_ref();
-        bindings.clone()
-    }
-}
-
-impl AsRef<TypeNode> for Type {
-    fn as_ref(&self) -> &TypeNode {
-        use std::borrow::Borrow;
-        let Type(rc_tn) = self;
-        rc_tn.borrow()
-    }
-}
-
-impl fmt::Display for Type {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.as_ref() {
-            TypeNode::Atom(atom) => write!(f, "{}", atom),
-            TypeNode::Arrow(dom, cod) => {
-                if let TypeNode::Atom(_) = dom.as_ref() {
-                    write!(f, "{}", dom)?;
-                } else {
-                    write!(f, "({})", dom)?;
-                }
-                write!(f, " -> ")?;
-                write!(f, "{}", cod)
-            }
-        }
-    }
 }
