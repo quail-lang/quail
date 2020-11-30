@@ -286,11 +286,11 @@ impl Tokenizer {
         }
     }
 
-    fn peek(&mut self) -> Option<char> {
+    fn peek(&self) -> Option<char> {
         self.peek_ahead(0)
     }
 
-    fn peek_ahead(&mut self, k: usize) -> Option<char> {
+    fn peek_ahead(&self, k: usize) -> Option<char> {
         match self.input.get(self.cur + k) {
             Some(c) => Some(*c),
             None => None,
