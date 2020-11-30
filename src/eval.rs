@@ -36,6 +36,12 @@ fn cons_prim(vs: Vec<Value>) -> Value {
     Value::Ctor("cons".into(), vec![head, tail])
 }
 
+fn pair_prim(vs: Vec<Value>) -> Value {
+    let fst = vs[0].clone();
+    let snd = vs[1].clone();
+    Value::Ctor("pair".into(), vec![fst, snd])
+}
+
 fn println_prim(vs: Vec<Value>) -> Value {
     assert_eq!(vs.len(), 1, "succ must have exactly one argument");
     let v = vs[0].clone();
@@ -52,6 +58,8 @@ pub fn prelude_ctx() -> Context {
         .extend(&"false".into(), Value::Ctor("false".into(), Vec::new()))
         .extend(&"nil".into(), Value::Ctor("nil".into(), Vec::new()))
         .extend(&"cons".into(), Value::Prim(rc::Rc::new(Box::new(cons_prim))))
+        .extend(&"unit".into(), Value::Ctor("unit".into(), Vec::new()))
+        .extend(&"pair".into(), Value::Prim(rc::Rc::new(Box::new(pair_prim))))
 }
 
 fn apply(func: Value, args: Vec<Value>, program: &Program) -> Value {
