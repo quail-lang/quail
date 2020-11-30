@@ -46,7 +46,10 @@ impl TypeDef {
         let ctors: Vec<&Tag> = self.ctor_types.keys().collect();
         let mut ctx = Context::empty();
         for tag in ctors {
-            ctx = ctx.extend(tag, Value::Ctor(tag.to_string(), vec![]));
+            match self.flavor {
+                Flavor::Inductive => ctx = ctx.extend(tag, Value::Ctor(tag.to_string(), vec![])),
+                Flavor::Coinductive => ctx = ctx.extend(tag, Value::CoCtor(tag.to_string(), vec![])),
+            }
         }
         ctx
     }
