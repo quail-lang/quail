@@ -52,7 +52,7 @@ pub fn repl(runtime: &mut Runtime) {
                                 ) {
                                 Ok(typ) => {
                                     runtime.add_holes(number_of_new_holes);
-                                    let value = runtime.eval(term, Context::empty());
+                                    let value = runtime.eval(&term, Context::empty());
                                     println!("=> {:?} : {}", &value, &typ);
                                 },
                                 Err(type_error) => println!("Type Error: {:?}", &type_error),

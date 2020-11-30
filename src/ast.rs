@@ -66,6 +66,16 @@ struct ContextNode(Vec<(String, Value)>);
 #[derive(Debug, Clone)]
 pub struct Context(rc::Rc<ContextNode>);
 
+impl std::ops::Deref for Term {
+    type Target = TermNode;
+
+    fn deref(&self) -> &TermNode {
+        use std::borrow::Borrow;
+        let Term(rc_tn) = self;
+        rc_tn.borrow()
+    }
+}
+
 impl AsRef<TermNode> for Term {
     fn as_ref(&self) -> &TermNode {
         use std::borrow::Borrow;

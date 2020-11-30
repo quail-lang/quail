@@ -60,7 +60,7 @@ fn exec_command(
             match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
                 Ok((term, number_of_new_holes)) => {
                     runtime.add_holes(number_of_new_holes);
-                    let value = runtime.eval(term, ctx.clone());
+                    let value = runtime.eval(&term, ctx.clone());
                     println!("=> {:?}", &value);
                     runtime.fill_hole(hole_info.hole_id, value.clone());
                     return Some(value);
@@ -72,7 +72,7 @@ fn exec_command(
             match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
                 Ok((term, number_of_new_holes)) => {
                     runtime.add_holes(number_of_new_holes);
-                    let value = runtime.eval(term, ctx.clone());
+                    let value = runtime.eval(&term, ctx.clone());
                     println!("=> {:?}", &value);
                 },
                 Err(e) => println!("There was an error {:?}", e),

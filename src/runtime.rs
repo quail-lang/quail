@@ -9,7 +9,6 @@ use crate::hole;
 use crate::builtins;
 use crate::typecheck;
 
-use ast::Term;
 use ast::TermNode;
 use ast::Def;
 use ast::Value;
@@ -184,7 +183,7 @@ impl Runtime {
                 typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())?;
                 self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
-                let body_value = self.eval(body.clone(), Context::empty());
+                let body_value = self.eval(&body, Context::empty());
                 self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
             }
         }
@@ -198,7 +197,7 @@ impl Runtime {
         typecheck::check_type(body.clone(), type_context, &self.inductive_typedefs, typ.clone())?;
         self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
-        let body_value = self.eval(body.clone(), Context::empty());
+        let body_value = self.eval(&body, Context::empty());
         self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
         Ok(())
     }
@@ -244,7 +243,7 @@ impl Runtime {
                     None => func,
                     Some((v, vs_remaining)) => {
                         let new_ctx = local_ctx.extend(&x, v.clone());
-                        let new_func = self.eval(body.clone(), new_ctx);
+                        let new_func = self.eval(&body, new_ctx);
                         let new_func = self.force(&new_func);
                         self.apply(new_func, vs_remaining.to_vec())
                     },
@@ -272,8 +271,8 @@ impl Runtime {
     // We have the following directive for reasons I don't really understand, but
     // since warnings are errors in the CI, I disable the warning.
     #[allow(mutable_borrow_reservation_conflict)]
-    pub fn eval(self: &mut Runtime, t: Term, ctx: Context) -> Value {
-        match t.as_ref() {
+    pub fn eval(self: &mut Runtime, t: &TermNode, ctx: Context) -> Value {
+        match t {
             TermNode::Var(x, k) => {
                 ctx.lookup(&x, *k)
                     .or_else(|| self.definition_ctx.lookup(&x, *k))
@@ -285,7 +284,7 @@ impl Runtime {
                 Value::Fun(x.clone(), body.clone(), ctx.clone())
             },
             TermNode::App(f, vs) => {
-                let f_value = self.eval(f.clone(), ctx.clone());
+                let f_value = self.eval(&f, ctx.clone());
                 let f_value = self.force(&f_value);
                 let vs_values: Vec<Value> = vs.iter()
                     .map(|v| Value::Thunk(v.clone(), ctx.clone()))
@@ -293,12 +292,12 @@ impl Runtime {
                 self.apply(f_value, vs_values)
             },
             TermNode::Let(x, v, body) => {
-                let v_value = self.eval(v.clone(), ctx.clone());
+                let v_value = self.eval(&v, ctx.clone());
                 let extended_ctx = ctx.extend(x, v_value);
-                self.eval(body.clone(), extended_ctx)
+                self.eval(&body, extended_ctx)
             },
             TermNode::Match(t, match_arms) => {
-                let t_value = self.eval(t.clone(), ctx.clone());
+                let t_value = self.eval(&t, ctx.clone());
                 let t_value = self.force(&t_value);
                 match t_value {
                     Value::Ctor(tag, contents) => {
@@ -309,7 +308,7 @@ impl Runtime {
                         let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
 
                         let extended_ctx = ctx.extend_many(&bindings);
-                        self.eval(body, extended_ctx)
+                        self.eval(&body, extended_ctx)
                     },
                     Value::CoCtor(tag, contents) => {
                         let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
@@ -319,20 +318,20 @@ impl Runtime {
                         let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
 
                         let extended_ctx = ctx.extend_many(&bindings);
-                        self.eval(body, extended_ctx)
+                        self.eval(&body, extended_ctx)
                     },
                     _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
                 }
             },
             TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
-            TermNode::As(term, _typ) => self.eval(term.clone(), ctx),
+            TermNode::As(term, _typ) => self.eval(&term, ctx),
         }
     }
 
     pub fn force(&mut self, value: &Value) -> Value {
         let mut result = value.clone();
         while let Value::Thunk(t, ctx) = &result {
-            result = self.eval(t.clone(), ctx.clone());
+            result = self.eval(&t, ctx.clone());
         }
         result
     }
@@ -340,7 +339,7 @@ impl Runtime {
     pub fn force_deep(&mut self, value: &Value) -> Value {
         let mut result = value.clone();
         while let Value::Thunk(t, ctx) = result {
-            result = self.eval(t.clone(), ctx.clone());
+            result = self.eval(&t, ctx.clone());
         }
 
         if let Value::Ctor(tag, contents) = result {
