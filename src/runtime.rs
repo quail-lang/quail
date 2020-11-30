@@ -201,6 +201,11 @@ impl Runtime {
                 new_contents.extend(args);
                 Value::Ctor(tag.to_string(), new_contents)
             },
+            Value::CoCtor(tag, contents) => {
+                let mut new_contents = contents.clone();
+                new_contents.extend(args);
+                Value::CoCtor(tag.to_string(), new_contents)
+            },
             Value::Prim(prim) => {
                 let args = args.into_iter().map(|a| self.force_deep(&a)).collect();
                 prim(self, args)
@@ -240,6 +245,16 @@ impl Runtime {
                 let t_value = self.force(&t_value);
                 match t_value {
                     Value::Ctor(tag, contents) => {
+                        let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
+
+                        let bind_names: Vec<String> = pat[1..].to_vec();
+                        let bind_values: Vec<Value> = contents.clone();
+                        let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
+
+                        let extended_ctx = ctx.extend_many(&bindings);
+                        self.eval(body, extended_ctx)
+                    },
+                    Value::CoCtor(tag, contents) => {
                         let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
 
                         let bind_names: Vec<String> = pat[1..].to_vec();

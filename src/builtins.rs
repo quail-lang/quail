@@ -122,7 +122,18 @@ pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
         ],
     );
 
-    vec![nat_type, bool_type, top_type, bot_type, list_type]
+    let conat_type = TypeDef::new(
+        "CoNat",
+        Flavor::Coinductive,
+        &[
+            ("cozero".to_string(), &[]),
+            ("cosucc".to_string(), &[
+                TypeNode::Atom("CoNat".to_string()).into(),
+            ]),
+        ],
+    );
+
+    vec![nat_type, bool_type, top_type, bot_type, list_type, conat_type]
 }
 
 pub fn builtins_ctx() -> Context {
