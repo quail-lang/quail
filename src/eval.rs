@@ -1,18 +1,80 @@
+use std::collections::HashMap;
 use std::rc;
 
 use crate::parser;
 
 use crate::ast;
-use crate::ast::Module;
 use crate::ast::Term;
 
+use crate::ast::Def;
 use crate::ast::Value;
 use crate::ast::Context;
 use ast::HoleId;
 
-pub fn exec(module: &Module) {
-    let ast::Def(_, main_body) = module.definition("main").expect("There should be a main in your module").clone();
-    eval(main_body, prelude_ctx(), module);
+#[derive(Clone, Debug)]
+pub struct Runtime {
+    pub definitions: Vec<ast::Def>,
+    pub holes: HashMap<HoleId, Value>,
+}
+
+impl Runtime {
+    pub fn load(filepath: impl AsRef<std::path::Path>) -> Self {
+        let mut runtime = Runtime {
+            definitions: vec![],
+            holes: HashMap::new(),
+        };
+
+        let basedir = std::path::Path::new(filepath.as_ref().parent().expect("Invalid path"));
+        let filename = std::path::Path::new(filepath.as_ref().file_name().expect("Invalid path"));
+        runtime.load_module(filename, basedir, true);
+        runtime
+    }
+
+    fn load_module(&mut self, filename: &std::path::Path, basedir: &std::path::Path, is_main: bool) {
+        let filepath = basedir.join(filename);
+        println!("Loading {:?}", filepath.to_string_lossy());
+        use std::fs;
+        use std::io::Read;
+        let mut module_text = String::new();
+        fs::File::open(filepath)
+            .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)))
+            .read_to_string(&mut module_text)
+            .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
+
+        let module = parser::parse_module(module_text)
+            .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
+
+        if is_main {
+            self.definitions.extend(module.definitions);
+        } else {
+            self.definitions.extend(module.definitions.into_iter().filter(|Def(name, _)| name != "main"));
+        }
+        for import in module.imports {
+            let ast::Import(name) = import;
+
+            let mut import_filename = name.to_string();
+            import_filename.extend(".ql".chars());
+            let import_filename = &std::path::Path::new(&import_filename);
+
+            self.load_module(import_filename, basedir, false);
+        }
+    }
+
+    fn definition(&self, name: impl Into<String>) -> Option<&Def> {
+        let name: String = name.into();
+        for definition in &self.definitions {
+            let Def(def_name, _) = &definition;
+            if *def_name == name {
+                return Some(definition);
+            }
+        }
+        None
+    }
+
+    pub fn exec(&mut self) {
+        let ast::Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
+        eval(main_body, prelude_ctx(), self);
+    }
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {
@@ -64,15 +126,15 @@ pub fn prelude_ctx() -> Context {
         .extend(&"pair".into(), Value::Prim(rc::Rc::new(Box::new(pair_prim))))
 }
 
-fn apply(func: Value, args: Vec<Value>, module: &Module) -> Value {
+fn apply(func: Value, args: Vec<Value>, runtime: &Runtime) -> Value {
     match &func {
         Value::Fun(x, body, local_ctx) => {
             match args.clone().split_first() {
                 None => func,
                 Some((v, vs_remaining)) => {
                     let new_ctx = local_ctx.extend(&x, v.clone());
-                    let new_func = eval(body.clone(), new_ctx, module);
-                    apply(new_func, vs_remaining.to_vec(), module)
+                    let new_func = eval(body.clone(), new_ctx, runtime);
+                    apply(new_func, vs_remaining.to_vec(), runtime)
                 },
             }
         },
@@ -87,15 +149,15 @@ fn apply(func: Value, args: Vec<Value>, module: &Module) -> Value {
     }
 }
 
-pub fn eval(t: Term, ctx: Context, module: &Module) -> Value {
+pub fn eval(t: Term, ctx: Context, runtime: &Runtime) -> Value {
     use crate::ast::TermNode::*;
     match t.as_ref() {
         Var(x) => {
             match ctx.lookup(x) {
                 Some(v) => v,
                 None => {
-                    let ast::Def(_, body) = module.definition(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
-                    eval(body.clone(), ctx, module)
+                    let ast::Def(_, body) = runtime.definition(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
+                    eval(body.clone(), ctx, runtime)
                 },
             }
         },
@@ -103,17 +165,17 @@ pub fn eval(t: Term, ctx: Context, module: &Module) -> Value {
             Value::Fun(x.clone(), body.clone(), ctx.clone())
         },
         App(f, vs) => {
-            let f_value = eval(f.clone(), ctx.clone(), module);
-            let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), module)).collect();
-            apply(f_value, vs_values, module)
+            let f_value = eval(f.clone(), ctx.clone(), runtime);
+            let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), runtime)).collect();
+            apply(f_value, vs_values, runtime)
         },
         Let(x, v, body) => {
-            let v_value = eval(v.clone(), ctx.clone(), module);
+            let v_value = eval(v.clone(), ctx.clone(), runtime);
             let extended_ctx = ctx.extend(x, v_value);
-            eval(body.clone(), extended_ctx, module)
+            eval(body.clone(), extended_ctx, runtime)
         },
         Match(t, match_arms) => {
-            let t_value = eval(t.clone(), ctx.clone(), module);
+            let t_value = eval(t.clone(), ctx.clone(), runtime);
             match t_value {
                 Value::Ctor(tag, contents) => {
                     let ast::MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
@@ -123,16 +185,16 @@ pub fn eval(t: Term, ctx: Context, module: &Module) -> Value {
                     let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
 
                     let extended_ctx = ctx.extend_many(&bindings);
-                    eval(body, extended_ctx, module)
+                    eval(body, extended_ctx, runtime)
                 },
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(hole_id, contents) => eval_hole(*hole_id, ctx, module, contents),
+        Hole(hole_id, contents) => eval_hole(*hole_id, ctx, runtime, contents),
     }
 }
 
-fn eval_hole(hole_id: HoleId, ctx: Context, module: &Module, contents: &str) -> Value {
+fn eval_hole(hole_id: HoleId, ctx: Context, runtime: &Runtime, contents: &str) -> Value {
     println!("Encountered hole #{}", hole_id);
     println!("");
     if contents != "" {
@@ -147,7 +209,7 @@ fn eval_hole(hole_id: HoleId, ctx: Context, module: &Module, contents: &str) -> 
 
     println!("");
     println!("    Globals:");
-    for definition in module.definitions.iter() {
+    for definition in runtime.definitions.iter() {
         let ast::Def(name, _) = definition;
         println!("        {}", &name);
     }
@@ -161,7 +223,7 @@ fn eval_hole(hole_id: HoleId, ctx: Context, module: &Module, contents: &str) -> 
     std::io::stdin().read_line(&mut term_text).expect("Couldn't read from stdin??");
 
     match parser::parse_term(term_text) {
-        Ok(term) => eval(term, ctx, module),
+        Ok(term) => eval(term, ctx, runtime),
         Err(e) => panic!(format!("There was an error {:?}", e)),
     }
 }

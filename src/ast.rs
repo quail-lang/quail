@@ -11,17 +11,6 @@ impl Module {
     pub fn new(definitions: Vec<Def>, imports: Vec<Import>) -> Self {
         Module { definitions, imports }
     }
-
-    pub fn definition(&self, name: impl Into<String>) -> Option<&Def> {
-        let name: String = name.into();
-        for definition in &self.definitions {
-            let Def(def_name, _) = &definition;
-            if *def_name == name {
-                return Some(definition);
-            }
-        }
-        None
-    }
 }
 
 #[derive(Clone, Debug)]
