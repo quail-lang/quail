@@ -9,6 +9,7 @@ use crate::ast::Item;
 
 use crate::ast::Value;
 use crate::ast::Context;
+use ast::HoleId;
 
 pub fn exec(program: &Program) {
     let Item::Def(_, main_body) = program.def("main").expect("There should be a main in your program").clone();
@@ -128,12 +129,12 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(contents) => eval_hole(ctx, program, contents),
+        Hole(hole_id, contents) => eval_hole(*hole_id, ctx, program, contents),
     }
 }
 
-fn eval_hole(ctx: Context, program: &Program, contents: &str) -> Value {
-    println!("Encountered hole:");
+fn eval_hole(hole_id: HoleId, ctx: Context, program: &Program, contents: &str) -> Value {
+    println!("Encountered hole #{}", hole_id);
     println!("");
     if contents != "" {
         println!("    Note: {:?}", contents);

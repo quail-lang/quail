@@ -1,5 +1,6 @@
 use crate::ast;
 use std::collections::HashMap;
+use ast::HoleId;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
@@ -258,6 +259,7 @@ type ParseErr = String;
 struct Parser {
     tokens: Vec<Token>,
     cur: usize,
+    next_hole_id: HoleId,
 }
 
 impl Parser {
@@ -265,6 +267,7 @@ impl Parser {
         Parser {
             tokens,
             cur: 0,
+            next_hole_id: 0,
         }
     }
 
@@ -369,12 +372,18 @@ impl Parser {
                 },
                 Token::Hole(contents) => {
                     self.consume();
-                    Ok(Some(ast::TermNode::Hole(contents).into()))
+                    Ok(Some(ast::TermNode::Hole(self.generate_hole_id(), contents).into()))
                 }
                 _ => Ok(None),
             },
             None => Ok(None),
         }
+    }
+
+    fn generate_hole_id(&mut self) -> HoleId {
+        let hole_id = self.next_hole_id;
+        self.next_hole_id += 1;
+        hole_id
     }
 
     fn parse_pattern(&mut self) -> Result<ast::Pattern, ParseErr> {
