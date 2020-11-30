@@ -26,7 +26,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                             Some(Command::Fill(term_text)) => {
                                 match parser::parse_term(&term_text) {
                                     Ok(term) => {
-                                        let value = runtime::eval(term, ctx.clone(), runtime);
+                                        let value = runtime.eval(term, ctx.clone());
                                         println!("=> {:?}", &value);
                                         runtime.fill_hole(hole_info.hole_id, value.clone());
                                         return value;
@@ -37,7 +37,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                             Some(Command::Eval(term_text)) => {
                                 match parser::parse_term(&term_text) {
                                     Ok(term) => {
-                                        let value = runtime::eval(term, ctx.clone(), runtime);
+                                        let value = runtime.eval(term, ctx.clone());
                                         println!("=> {:?}", &value);
                                     },
                                     Err(e) => println!("There was an error {:?}", e),

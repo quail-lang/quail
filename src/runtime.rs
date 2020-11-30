@@ -105,7 +105,7 @@ impl Runtime {
 
     pub fn exec(&mut self) {
         let Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
-        eval(main_body, Context::empty(), self);
+        self.eval(main_body, Context::empty());
     }
 
     pub fn readline(&mut self) -> Result<String, ReadlineError> {
@@ -122,80 +122,81 @@ impl Runtime {
     pub fn lookup_builtin(&self, x: &str) -> Option<Value> {
         self.builtin_ctx.lookup(x)
     }
-}
 
-fn apply(func: Value, args: Vec<Value>, runtime: &mut Runtime) -> Value {
-    match &func {
-        Value::Fun(x, body, local_ctx) => {
-            match args.clone().split_first() {
-                None => func,
-                Some((v, vs_remaining)) => {
-                    let new_ctx = local_ctx.extend(&x, v.clone());
-                    let new_func = eval(body.clone(), new_ctx, runtime);
-                    apply(new_func, vs_remaining.to_vec(), runtime)
-                },
-            }
-        },
-        Value::Ctor(tag, contents) => {
-            let mut new_contents = contents.clone();
-            new_contents.extend(args);
-            Value::Ctor(tag.to_string(), new_contents)
-        },
-        Value::Prim(prim) => {
-            prim(args)
-        },
-        _ => panic!(format!("Applied arguments to non-function {:?}", func)),
+    fn apply(self: &mut Runtime, func: Value, args: Vec<Value>) -> Value {
+        match &func {
+            Value::Fun(x, body, local_ctx) => {
+                match args.clone().split_first() {
+                    None => func,
+                    Some((v, vs_remaining)) => {
+                        let new_ctx = local_ctx.extend(&x, v.clone());
+                        let new_func = self.eval(body.clone(), new_ctx);
+                        self.apply(new_func, vs_remaining.to_vec())
+                    },
+                }
+            },
+            Value::Ctor(tag, contents) => {
+                let mut new_contents = contents.clone();
+                new_contents.extend(args);
+                Value::Ctor(tag.to_string(), new_contents)
+            },
+            Value::Prim(prim) => {
+                prim(args)
+            },
+            _ => panic!(format!("Applied arguments to non-function {:?}", func)),
+        }
     }
-}
 
-pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
-    match t.as_ref() {
-        TermNode::Var(x) => {
-            match runtime.definition(x) {
-                Some(Def(_, body)) => eval(body.clone(), ctx, runtime),
-                None => {
-                    match ctx.lookup(&x) {
-                        Some(v) => v,
-                        None => {
-                            match runtime.lookup_builtin(&x) {
-                                Some(v) => v,
-                                None => panic!(format!("Unbound variable {:?}", &x)),
-                            }
-                        },
+    #[allow(mutable_borrow_reservation_conflict)]
+    pub fn eval(self: &mut Runtime, t: Term, ctx: Context) -> Value {
+        match t.as_ref() {
+            TermNode::Var(x) => {
+                match self.definition(x) {
+                    Some(Def(_, body)) => self.eval(body.clone(), ctx),
+                    None => {
+                        match ctx.lookup(&x) {
+                            Some(v) => v,
+                            None => {
+                                match self.lookup_builtin(&x) {
+                                    Some(v) => v,
+                                    None => panic!(format!("Unbound variable {:?}", &x)),
+                                }
+                            },
+                        }
                     }
                 }
-            }
-        },
-        TermNode::Lam(x, body) => {
-            Value::Fun(x.clone(), body.clone(), ctx.clone())
-        },
-        TermNode::App(f, vs) => {
-            let f_value = eval(f.clone(), ctx.clone(), runtime);
-            let vs_values: Vec<Value> = vs.iter().map(|v| eval(v.clone(), ctx.clone(), runtime)).collect();
-            apply(f_value, vs_values, runtime)
-        },
-        TermNode::Let(x, v, body) => {
-            let v_value = eval(v.clone(), ctx.clone(), runtime);
-            let extended_ctx = ctx.extend(x, v_value);
-            eval(body.clone(), extended_ctx, runtime)
-        },
-        TermNode::Match(t, match_arms) => {
-            let t_value = eval(t.clone(), ctx.clone(), runtime);
-            match t_value {
-                Value::Ctor(tag, contents) => {
-                    let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
+            },
+            TermNode::Lam(x, body) => {
+                Value::Fun(x.clone(), body.clone(), ctx.clone())
+            },
+            TermNode::App(f, vs) => {
+                let f_value = self.eval(f.clone(), ctx.clone());
+                let vs_values: Vec<Value> = vs.iter().map(|v| self.eval(v.clone(), ctx.clone())).collect();
+                self.apply(f_value, vs_values)
+            },
+            TermNode::Let(x, v, body) => {
+                let v_value = self.eval(v.clone(), ctx.clone());
+                let extended_ctx = ctx.extend(x, v_value);
+                self.eval(body.clone(), extended_ctx)
+            },
+            TermNode::Match(t, match_arms) => {
+                let t_value = self.eval(t.clone(), ctx.clone());
+                match t_value {
+                    Value::Ctor(tag, contents) => {
+                        let MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
 
-                    let bind_names: Vec<String> = pat[1..].to_vec();
-                    let bind_values: Vec<Value> = contents.clone();
-                    let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
+                        let bind_names: Vec<String> = pat[1..].to_vec();
+                        let bind_values: Vec<Value> = contents.clone();
+                        let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
 
-                    let extended_ctx = ctx.extend_many(&bindings);
-                    eval(body, extended_ctx, runtime)
-                },
-                _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
-            }
-        },
-        TermNode::Hole(hole_info) => hole::fill(runtime, hole_info, ctx),
+                        let extended_ctx = ctx.extend_many(&bindings);
+                        self.eval(body, extended_ctx)
+                    },
+                    _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
+                }
+            },
+            TermNode::Hole(hole_info) => hole::fill(self, hole_info, ctx),
+        }
     }
-}
 
+}
