@@ -277,9 +277,6 @@ impl Runtime {
     }
 
     /// Evaluates a term in a given local context and returns the result.
-    // We have the following directive for reasons I don't really understand, but
-    // since warnings are errors in the CI, I disable the warning.
-    #[allow(mutable_borrow_reservation_conflict)]
     pub fn eval(self: &mut Runtime, t: &TermNode, ctx: Context) -> Value {
         match t {
             TermNode::Var(x, k) => {
