@@ -1,3 +1,4 @@
+import nat
 import pair
 
 def head xs =
@@ -68,5 +69,11 @@ def take n xs =
                 with cons x xs' => cons x (take n' xs)
         )
 
+def one_two_three =
+    cons one (cons two (cons three nil))
+
+def list_of_lists =
+    cons one_two_three (cons one_two_three nil)
+
 def main =
-    println (head (cons zero nil))
+    println (show (eq three (length list_of_lists)))

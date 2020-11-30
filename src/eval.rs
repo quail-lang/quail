@@ -136,6 +136,25 @@ fn nat_to_u64(v: Value) -> u64 {
     }
 }
 
+fn list_to_vec(v: Value) -> Vec<Value> {
+    match v {
+        Value::Ctor(tag, contents) => {
+            if tag == "nil" {
+                Vec::new()
+            } else if tag == "cons" {
+                let head = &contents[0];
+                let tail = &contents[1];
+                let mut result = list_to_vec(tail.clone());
+                result.insert(0, head.clone());
+                result
+            } else {
+                 panic!("This isn't a list.")
+            }
+        },
+        _ => panic!("This isn't a list."),
+    }
+}
+
 fn show_prim(vs: Vec<Value>) -> Value {
     assert_eq!(vs.len(), 1, "show must have exactly one argument");
     let v = vs[0].clone();
@@ -143,6 +162,11 @@ fn show_prim(vs: Vec<Value>) -> Value {
         Value::Ctor(tag, _) => {
             if tag == "zero" || tag == "succ" {
                 ast::Value::Str(format!("{}", nat_to_u64(v)))
+            } else if tag == "nil" || tag == "cons" {
+                let val_vec = list_to_vec(v.clone());
+                let str_value_vec: Vec<Value> = val_vec.into_iter().map(|v| show_prim(vec![v])).collect();
+                let s: String = format!("{:?}", str_value_vec);
+                ast::Value::Str(s)
             } else {
                 ast::Value::Str(format!("{:?}", v))
             }
