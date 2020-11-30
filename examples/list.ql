@@ -44,22 +44,6 @@ def up_to_iter : Nat -> Nat -> List = fun n k =>
 
 def up_to : Nat -> List = fun n => up_to_iter n n
 
-#def zip xs ys =
-#    match xs
-#        with nil => nil
-#        with cons x xs' => (
-#            match ys
-#                with nil => nil
-#                with cons y ys' =>
-#                    let head = pair x y in
-#                    let tail = zip xs' ys' in
-#                    cons head tail
-#        )
-#
-#def zip_with f xs ys =
-#    let pairs = zip xs ys in
-#    map (fun p => f (fst p) (snd p))
-#
 def take : Nat -> List -> List = fun n xs =>
     match n
         with zero => nil
