@@ -66,20 +66,22 @@ impl Tokenizer {
     fn double_character_token(&mut self) -> Option<Token> {
         let head_char = self.peek()?;
         let next_char = self.peek_ahead(1)?;
+        let chars = format!("{}{}", head_char, next_char);
 
-        if head_char == '-' && next_char == '>' {
-            self.consume();
-            self.consume();
-            Some(Token::Arrow(self.loc.clone()))
-            /* Err("Expected '>'".to_string()) */
-
-        } else if head_char == '=' && next_char == '>' {
-            self.consume();
-            self.consume();
-            Some(Token::FatArrow(self.loc.clone()))
-        } else {
-            None
+        macro_rules! double_char_token {
+            ($characters:literal, $tok:ident) => {
+                if chars == $characters {
+                    self.consume();
+                    self.consume();
+                    return Some(Token::$tok(self.loc.clone()));
+                }
+            }
         }
+
+        double_char_token!("->", Arrow);
+        double_char_token!("=>", FatArrow);
+
+        return None;
     }
 
     fn single_character_token(&mut self) -> Option<Token> {
