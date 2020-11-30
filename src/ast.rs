@@ -1,6 +1,8 @@
 use std::rc;
 use std::fmt;
 
+use crate::tokenizer::Loc;
+
 #[derive(Clone, Debug)]
 pub struct Module {
     pub definitions: Vec<Def>,
@@ -37,6 +39,7 @@ pub struct HoleInfo {
     pub hole_id: HoleId,
     pub name: Option<String>,
     pub contents: Option<String>,
+    pub loc: Loc,
 }
 
 pub type HoleId = usize;
@@ -84,11 +87,12 @@ impl Module {
 
 
 impl HoleInfo {
-    pub fn new(hole_id: HoleId, name: Option<String>, contents: Option<String>) -> Self {
+    pub fn new(hole_id: HoleId, name: Option<String>, contents: Option<String>, loc: Loc) -> Self {
         HoleInfo {
             hole_id,
             name,
             contents,
+            loc,
         }
     }
 }

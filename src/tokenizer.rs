@@ -4,21 +4,21 @@ use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
-    Ident(String),
-    Lambda,
-    Let,
-    Def,
-    Equals,
-    In,
-    FatArrow,
-    LeftParen,
-    RightParen,
-    LeftCurly,
-    RightCurly,
-    Hole(Option<String>, Option<String>),
-    Match,
-    With,
-    Import,
+    Ident(Loc, String),
+    Hole(Loc, Option<String>, Option<String>),
+    Lambda(Loc),
+    Let(Loc),
+    Def(Loc),
+    Equals(Loc),
+    In(Loc),
+    FatArrow(Loc),
+    LeftParen(Loc),
+    RightParen(Loc),
+    LeftCurly(Loc),
+    RightCurly(Loc),
+    Match(Loc),
+    With(Loc),
+    Import(Loc),
 }
 
 pub struct Tokenizer {
@@ -71,16 +71,16 @@ impl Tokenizer {
             Some(head_char) => {
                 if head_char == '(' {
                     self.consume();
-                    Ok(Some(Token::LeftParen))
+                    Ok(Some(Token::LeftParen(self.loc.clone())))
                 } else if head_char == ')' {
                     self.consume();
-                    Ok(Some(Token::RightParen))
+                    Ok(Some(Token::RightParen(self.loc.clone())))
                 } else if head_char == '{' {
                     self.consume();
-                    Ok(Some(Token::LeftCurly))
+                    Ok(Some(Token::LeftCurly(self.loc.clone())))
                 } else if head_char == '}' {
                     self.consume();
-                    Ok(Some(Token::RightCurly))
+                    Ok(Some(Token::RightCurly(self.loc.clone())))
                 } else if head_char.is_ascii_alphabetic() {
                     let token = self.tokenize_identifier()?;
                     Ok(Some(token))
@@ -91,13 +91,13 @@ impl Tokenizer {
                         Some('>') => {
                             self.consume();
                             self.consume();
-                            Ok(Some(Token::FatArrow))
+                            Ok(Some(Token::FatArrow(self.loc.clone())))
                         },
                         Some(_) => {
                             self.consume();
-                            Ok(Some(Token::Equals))
+                            Ok(Some(Token::Equals(self.loc.clone())))
                         }
-                        None => Ok(Some(Token::Equals)),
+                        None => Ok(Some(Token::Equals(self.loc.clone()))),
                     }
                 } else {
                     Err(format!("Unexpected character while parsing: {}", head_char))
@@ -114,12 +114,12 @@ impl Tokenizer {
         let name: Option<String>;
 
         match self.peek() {
-            None => return Ok(Token::Hole(None, None)),
+            None => return Ok(Token::Hole(self.loc.clone(), None, None)),
             Some(chr) => peek_char = chr,
         }
 
         if peek_char.is_ascii_alphabetic() {
-            if let Token::Ident(token_name) = self.tokenize_identifier()? {
+            if let Token::Ident(_, token_name) = self.tokenize_identifier()? {
                 name = Some(token_name);
             } else {
                 // TODO explain why
@@ -150,22 +150,22 @@ impl Tokenizer {
             if level != 0 {
                 Err("Mismatch curly braces.".to_string())
             } else {
-                Ok(Token::Hole(name, Some(contents)))
+                Ok(Token::Hole(self.loc.clone(), name, Some(contents)))
             }
         } else {
-            Ok(Token::Hole(name, None))
+            Ok(Token::Hole(self.loc.clone(), name, None))
         }
     }
 
     fn tokenize_identifier(&mut self) -> Result<Token, TokenizeErr> {
         let keywords: HashMap<String, Token> = vec![
-            ("fun".to_string(), Token::Lambda),
-            ("let".to_string(), Token::Let),
-            ("def".to_string(), Token::Def),
-            ("in".to_string(), Token::In),
-            ("match".to_string(), Token::Match),
-            ("with".to_string(), Token::With),
-            ("import".to_string(), Token::Import),
+            ("fun".to_string(), Token::Lambda(self.loc.clone())),
+            ("let".to_string(), Token::Let(self.loc.clone())),
+            ("def".to_string(), Token::Def(self.loc.clone())),
+            ("in".to_string(), Token::In(self.loc.clone())),
+            ("match".to_string(), Token::Match(self.loc.clone())),
+            ("with".to_string(), Token::With(self.loc.clone())),
+            ("import".to_string(), Token::Import(self.loc.clone())),
         ].iter().cloned().collect();
 
         let mut first_char = '\0';
@@ -201,7 +201,7 @@ impl Tokenizer {
 
         match keywords.get(&token_string) {
             Some(token) => Ok(token.clone()),
-            None => Ok(Token::Ident(token_string))
+            None => Ok(Token::Ident(self.loc.clone(), token_string))
         }
     }
 
