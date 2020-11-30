@@ -1,10 +1,7 @@
 #![cfg(test)]
 use std::fs;
 
-use crate::parser;
 use crate::eval;
-
-use std::io::Read;
 
 #[test]
 fn run_examples() {
@@ -12,12 +9,7 @@ fn run_examples() {
     for path in paths {
         let filename = path.expect("Couldn't open file").path();
         println!("{:?}", filename);
-        let mut program_text = String::new();
-        fs::File::open(filename).expect("File doesn't exist").read_to_string(&mut program_text).expect("Couldn't read from file");
-
-        match parser::parse_module(program_text) {
-            Ok(module) => eval::exec(&module),
-            Err(e) => panic!("There was an error {:?}", e),
-        }
+        let mut runtime = eval::Runtime::load(filename);
+        runtime.exec();
     }
 }
