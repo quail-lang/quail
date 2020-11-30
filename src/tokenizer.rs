@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
@@ -24,14 +26,24 @@ pub enum Token {
 pub struct Tokenizer {
     input: Vec<char>,
     cur: usize,
+    loc: Location,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Location {
+    pub path: Option<PathBuf>,
+
+    // Both line and col are zero-based, so be mindful when printing!
+    pub line: usize,
+    pub col: usize,
 }
 
 impl Tokenizer {
-
-    pub(crate) fn new(input: &str) -> Self {
+    pub fn new(input: &str) -> Self {
         Tokenizer {
             input: input.chars().collect(),
             cur: 0,
+            loc: Location::new(None),
         }
     }
 
@@ -210,5 +222,24 @@ impl Tokenizer {
             Some(token) => token.clone(),
             None => Token::Ident(token_string)
         }
+    }
+}
+
+impl Location {
+    fn new(source: Option<&Path>) -> Self {
+        Location {
+            path: source.map(|p| p.to_path_buf()),
+            line: 0,
+            col: 0,
+        }
+    }
+
+    fn next_line(&mut self) {
+        self.line += 1;
+        self.col = 0;
+    }
+
+    fn next_col(&mut self) {
+        self.col += 1;
     }
 }
