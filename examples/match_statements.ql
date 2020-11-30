@@ -1,3 +1,3 @@
-def main = match 2
+def main = match Succ (Succ Zero)
     with Zero => println 123
-    with Succ n => println 321
+    with Succ n => println n

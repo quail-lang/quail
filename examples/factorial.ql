@@ -1,17 +1,22 @@
 def add = fun n m =>
-    (ifzero n
-        (fun x => m)
-        (fun x => (add (pred n) (succ m)))) 0
+    match n
+        with Zero => m
+        with Succ n => Succ (add n m)
 
+def one = Succ Zero
+def two = Succ one
+def three = Succ two
+def four = Succ three
+def five = Succ four
 
 def mul = fun n m =>
-    (ifzero n
-        (fun x => 0)
-        (fun x => (add m (mul (pred n) m)))) 0
+    match n
+        with Zero => Zero
+        with Succ n => add m (mul n m)
 
-def factorial = fun n =>
-    (ifzero n
-        (fun x => 1)
-        (fun x => (mul n (factorial (pred n))))) 0
+def fact = fun n =>
+    match n
+        with Zero => one
+        with Succ n' => mul n (fact n')
 
-def main = println (factorial 5)
+def main = println (fact five)
