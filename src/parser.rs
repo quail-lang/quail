@@ -90,7 +90,7 @@ impl Tokenizer {
         let mut tokens = Vec::new();
 
         while let Some(head_char) = self.peek() {
-            if head_char == ' ' {
+            if head_char.is_ascii_whitespace() {
                 self.consume();
             } else if head_char == '(' {
                 tokens.push(Token::LeftParen);
