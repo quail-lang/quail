@@ -110,6 +110,52 @@ impl Runtime {
         self.editor.save_history(&self.readline_file)?;
         Ok(line)
     }
+
+    fn fill_hole(&mut self, hole_id: HoleId, contents: &str, ctx: Context) -> Value {
+        match self.holes.get_mut(&hole_id) {
+            Some(value) => value.clone(),
+            None => {
+                println!("Encountered hole #{}", hole_id);
+                println!("");
+                if contents != "" {
+                    println!("    Note: {:?}", contents);
+                }
+
+                println!("");
+                println!("    Bindings:");
+                for (name, value) in ctx.bindings().into_iter() {
+                    println!("        {} = {:?}", name, &value);
+                }
+
+                println!("");
+                println!("    Globals:");
+                for definition in self.definitions.iter() {
+                    let ast::Def(name, _) = definition;
+                    println!("        {}", &name);
+                }
+
+                println!("");
+
+                loop {
+                    match self.readline() {
+                        Ok(term_text) => {
+                            match parser::parse_term(term_text) {
+                                Ok(term) => {
+                                    return eval(term, ctx, self);
+                                }
+                                Err(e) => println!("There was an error {:?}", e),
+                            }
+                        },
+                        Err(ReadlineError::Interrupted) => (),
+                        Err(ReadlineError::Eof) => std::process::exit(1),
+                        Err(err) => {
+                            panic!("Error: {:?}", err);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn succ_prim(vs: Vec<Value>) -> Value {
@@ -282,47 +328,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
-        Hole(hole_id, contents) => eval_hole(*hole_id, ctx, runtime, contents),
+        Hole(hole_id, contents) => runtime.fill_hole(*hole_id, contents, ctx),
     }
 }
 
-fn eval_hole(hole_id: HoleId, ctx: Context, runtime: &mut Runtime, contents: &str) -> Value {
-    println!("Encountered hole #{}", hole_id);
-    println!("");
-    if contents != "" {
-        println!("    Note: {:?}", contents);
-    }
-
-    println!("");
-    println!("    Bindings:");
-    for (name, value) in ctx.bindings().into_iter() {
-        println!("        {} = {:?}", name, &value);
-    }
-
-    println!("");
-    println!("    Globals:");
-    for definition in runtime.definitions.iter() {
-        let ast::Def(name, _) = definition;
-        println!("        {}", &name);
-    }
-
-    println!("");
-
-    loop {
-        match runtime.readline() {
-            Ok(term_text) => {
-                match parser::parse_term(term_text) {
-                    Ok(term) => {
-                        return eval(term, ctx, runtime);
-                    }
-                    Err(e) => println!("There was an error {:?}", e),
-                }
-            },
-            Err(ReadlineError::Interrupted) => (),
-            Err(ReadlineError::Eof) => std::process::exit(1),
-            Err(err) => {
-                panic!("Error: {:?}", err);
-            }
-        }
-    }
-}
