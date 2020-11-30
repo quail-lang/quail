@@ -1,1 +1,1 @@
-def main = println (show zero)
+def main : Unit = println (show zero)

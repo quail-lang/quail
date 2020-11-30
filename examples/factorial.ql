@@ -1,22 +1,13 @@
-def one = succ zero
-def two = succ one
-def three = succ two
-def four = succ three
-def five = succ four
+import nat
 
-def add n m =
-    match n
-        with zero => m
-        with succ n => succ (add n m)
-
-def mul n m =
+def mul : Nat -> Nat -> Nat = fun n m =>
     match n
         with zero => zero
         with succ n => add m (mul n m)
 
-def fact n =
+def fact : Nat -> Nat = fun n =>
     match n
         with zero => one
         with succ n' => mul n (fact n')
 
-def main = println (fact five)
+def main : Unit = println (show (fact five))
