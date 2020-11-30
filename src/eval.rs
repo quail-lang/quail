@@ -73,7 +73,7 @@ impl Runtime {
             .read_to_string(&mut module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
 
-        let module = parser::parse_module(module_text)
+        let module = parser::parse_module(&module_text)
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
 
         if is_main {
@@ -92,11 +92,10 @@ impl Runtime {
         }
     }
 
-    fn definition(&self, name: impl Into<String>) -> Option<&Def> {
-        let name: String = name.into();
+    fn definition(&self, name: &str) -> Option<&Def> {
         for definition in &self.definitions {
             let Def(def_name, _) = &definition;
-            if *def_name == name {
+            if def_name == name {
                 return Some(definition);
             }
         }
@@ -217,16 +216,16 @@ fn show_prim(vs: Vec<Value>) -> Value {
 
 pub fn builtins_ctx() -> Context {
     Context::empty()
-        .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))))
-        .extend(&"zero".into(), Value::Ctor("zero".into(), Vec::new()))
-        .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
-        .extend(&"true".into(), Value::Ctor("true".into(), Vec::new()))
-        .extend(&"false".into(), Value::Ctor("false".into(), Vec::new()))
-        .extend(&"nil".into(), Value::Ctor("nil".into(), Vec::new()))
-        .extend(&"cons".into(), Value::Prim(rc::Rc::new(Box::new(cons_prim))))
-        .extend(&"unit".into(), Value::Ctor("unit".into(), Vec::new()))
-        .extend(&"pair".into(), Value::Prim(rc::Rc::new(Box::new(pair_prim))))
-        .extend(&"show".into(), Value::Prim(rc::Rc::new(Box::new(show_prim))))
+        .extend("println", Value::Prim(rc::Rc::new(Box::new(println_prim))))
+        .extend("zero", Value::Ctor("zero".into(), Vec::new()))
+        .extend("succ", Value::Prim(rc::Rc::new(Box::new(succ_prim))))
+        .extend("true", Value::Ctor("true".into(), Vec::new()))
+        .extend("false", Value::Ctor("false".into(), Vec::new()))
+        .extend("nil", Value::Ctor("nil".into(), Vec::new()))
+        .extend("cons", Value::Prim(rc::Rc::new(Box::new(cons_prim))))
+        .extend("unit", Value::Ctor("unit".into(), Vec::new()))
+        .extend("pair", Value::Prim(rc::Rc::new(Box::new(pair_prim))))
+        .extend("show", Value::Prim(rc::Rc::new(Box::new(show_prim))))
 }
 
 fn apply(func: Value, args: Vec<Value>, runtime: &mut Runtime) -> Value {
@@ -257,7 +256,7 @@ pub fn eval(t: Term, ctx: Context, runtime: &mut Runtime) -> Value {
     use crate::ast::TermNode::*;
     match t.as_ref() {
         Var(x) => {
-            match runtime.definition(x.to_string()) {
+            match runtime.definition(x) {
                 Some(ast::Def(_, body)) => eval(body.clone(), ctx, runtime),
                 None => {
                     match ctx.lookup(&x) {

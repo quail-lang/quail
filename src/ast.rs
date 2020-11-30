@@ -135,7 +135,7 @@ impl Context {
         None
     }
 
-    pub fn extend(&self, x: &String, v: Value) -> Context {
+    pub fn extend(&self, x: &str, v: Value) -> Context {
         let Context(rc_ctx_node) = self;
         let ContextNode(var_val_list) = rc_ctx_node.as_ref();
         let mut extended_var_val_list = var_val_list.clone();

@@ -229,7 +229,7 @@ impl Parser {
     }
 }
 
-pub fn parse_term(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
+pub fn parse_term(input: &str) -> Result<ast::Term, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
 
@@ -238,7 +238,7 @@ pub fn parse_term(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
     parser.parse_term()
 }
 
-pub fn parse_module(input: impl Into<String>) -> Result<ast::Module, ParseErr> {
+pub fn parse_module(input: &str) -> Result<ast::Module, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
 

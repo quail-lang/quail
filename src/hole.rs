@@ -22,7 +22,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                         match parse_command(&line) {
                             None => (),
                             Some(Command::Fill(term_text)) => {
-                                match parser::parse_term(term_text) {
+                                match parser::parse_term(&term_text) {
                                     Ok(term) => {
                                         let value = eval::eval(term, ctx.clone(), runtime);
                                         println!("=> {:?}", &value);
@@ -33,7 +33,7 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                                 }
                             },
                             Some(Command::Eval(term_text)) => {
-                                match parser::parse_term(term_text) {
+                                match parser::parse_term(&term_text) {
                                     Ok(term) => {
                                         let value = eval::eval(term, ctx.clone(), runtime);
                                         println!("=> {:?}", &value);

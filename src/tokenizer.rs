@@ -29,9 +29,9 @@ pub struct Tokenizer {
 
 impl Tokenizer {
 
-    pub(crate) fn new(input: impl Into<String>) -> Self {
+    pub(crate) fn new(input: &str) -> Self {
         Tokenizer {
-            input: input.into().chars().collect(),
+            input: input.chars().collect(),
             cur: 0,
         }
     }
