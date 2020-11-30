@@ -3,7 +3,7 @@ use std::fmt;
 
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Type(pub rc::Rc<TypeNode>);
+pub struct Type(rc::Rc<TypeNode>);
 
 
 #[derive(Clone, Debug, PartialEq, Eq)]

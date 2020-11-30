@@ -1,5 +1,3 @@
-use std::rc;
-
 use crate::types::Type;
 use crate::tokenizer::Loc;
 
@@ -17,7 +15,7 @@ pub struct Def(pub String, pub Type, pub Term);
 pub struct Import(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Term(pub rc::Rc<TermNode>);
+pub struct Term(Box<TermNode>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Variable {
@@ -74,7 +72,7 @@ impl AsRef<TermNode> for Term {
 
 impl From<TermNode> for Term {
     fn from(tn: TermNode) -> Self {
-        Term(rc::Rc::new(tn))
+        Term(Box::new(tn))
     }
 }
 

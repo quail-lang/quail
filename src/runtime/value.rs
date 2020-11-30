@@ -12,10 +12,12 @@ pub enum Value {
     Ctor(Tag, Vec<Value>),
     CoCtor(Tag, Vec<Value>),
     Fun(String, Term, Context),
-    Prim(rc::Rc<dyn Fn(&mut Runtime, Vec<Value>) -> Value>),
+    Prim(rc::Rc<PrimFn>),
     Str(String),
     Thunk(Term, Context),
 }
+
+type PrimFn = dyn Fn(&mut Runtime, Vec<Value>) -> Value;
 
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
