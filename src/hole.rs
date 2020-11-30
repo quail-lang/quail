@@ -8,7 +8,6 @@ use ast::Value;
 use ast::HoleInfo;
 use ast::HoleId;
 use ast::Context;
-use ast::Def;
 use runtime::Runtime;
 
 pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value {
@@ -103,8 +102,7 @@ fn show_bindings(ctx: &Context) {
 
 fn show_globals(runtime: &Runtime) {
     println!("    Globals:");
-    for definition in runtime.definitions.iter() {
-        let Def(name, _) = definition;
+    for (name, _value) in runtime.definition_ctx.bindings() {
         println!("        {}", &name);
     }
     println!();

@@ -20,12 +20,12 @@ use ast::MatchArm;
 #[derive(Debug)]
 pub struct Runtime {
     pub imports: Vec<String>,
-    pub definitions: Vec<Def>,
     pub holes: HashMap<HoleId, Value>,
     pub readline_file: String,
     pub editor: rustyline::Editor<()>,
-    pub builtin_ctx: Context,
     pub number_of_holes: u64,
+    pub definition_ctx: Context,
+    pub builtin_ctx: Context,
 }
 
 impl Runtime {
@@ -42,12 +42,12 @@ impl Runtime {
 
         let mut runtime = Runtime {
             imports: vec![],
-            definitions: vec![],
             holes: HashMap::new(),
             readline_file: readline_file.to_string_lossy().to_string(),
             editor: rustyline::Editor::new(),
-            builtin_ctx: builtins::builtins_ctx(),
             number_of_holes: 0,
+            definition_ctx: Context::empty(),
+            builtin_ctx: builtins::builtins_ctx(),
         };
 
         if runtime.editor.load_history(&runtime.readline_file).is_err() {
@@ -80,11 +80,6 @@ impl Runtime {
             .unwrap_or_else(|e| panic!(format!("There was an error {:?}", e)));
         self.add_holes(number_of_new_holes);
 
-        if is_main {
-            self.definitions.extend(module.definitions);
-        } else {
-            self.definitions.extend(module.definitions.into_iter().filter(|Def(name, _)| name != "main"));
-        }
         for import in module.imports {
             let Import(name) = import;
 
@@ -93,6 +88,14 @@ impl Runtime {
             let import_filename = &std::path::Path::new(&import_filename);
 
             self.load_module(import_filename, basedir, false);
+        }
+
+        for definition in module.definitions.iter() {
+            let Def(name, body) = definition;
+            if is_main || name != "main" {
+                let body_value = self.eval(body.clone(), Context::empty());
+                self.definition_ctx = self.definition_ctx.extend(&name.to_string(), body_value);
+            }
         }
     }
 
@@ -104,19 +107,8 @@ impl Runtime {
         self.number_of_holes += number_of_holes;
     }
 
-    fn definition(&self, name: &str) -> Option<&Def> {
-        for definition in &self.definitions {
-            let Def(def_name, _) = &definition;
-            if def_name == name {
-                return Some(definition);
-            }
-        }
-        None
-    }
-
     pub fn exec(&mut self) {
-        let Def(_, main_body) = self.definition("main").expect("There should be a main in your module").clone();
-        self.eval(main_body, Context::empty());
+        self.definition_ctx.lookup("main").expect("There should be a main in your module");
     }
 
     pub fn readline(&mut self) -> Result<String, ReadlineError> {
@@ -133,10 +125,6 @@ impl Runtime {
     pub fn hole_value(&self, hole_id: HoleId) -> Option<Value> {
         assert!((hole_id as u64) < self.number_of_holes, "Invalid HoleId!");
         self.holes.get(&hole_id).cloned()
-    }
-
-    pub fn lookup_builtin(&self, x: &str) -> Option<Value> {
-        self.builtin_ctx.lookup(x)
     }
 
     fn apply(self: &mut Runtime, func: Value, args: Vec<Value>) -> Value {
@@ -167,20 +155,10 @@ impl Runtime {
     pub fn eval(self: &mut Runtime, t: Term, ctx: Context) -> Value {
         match t.as_ref() {
             TermNode::Var(x) => {
-                match self.definition(x) {
-                    Some(Def(_, body)) => self.eval(body.clone(), ctx),
-                    None => {
-                        match ctx.lookup(&x) {
-                            Some(v) => v,
-                            None => {
-                                match self.lookup_builtin(&x) {
-                                    Some(v) => v,
-                                    None => panic!(format!("Unbound variable {:?}", &x)),
-                                }
-                            },
-                        }
-                    }
-                }
+                ctx.lookup(&x)
+                    .or_else(|| self.definition_ctx.lookup(&x))
+                    .or_else(|| self.builtin_ctx.lookup(&x))
+                    .expect(&format!("Unbound variable {:?}", &x))
             },
             TermNode::Lam(x, body) => {
                 Value::Fun(x.clone(), body.clone(), ctx.clone())
