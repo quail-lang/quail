@@ -1,8 +1,8 @@
 use std::rc;
+use std::fmt;
 
 #[derive(Clone, Debug)]
 pub enum Type {
-    Bool,
     Nat,
     Arrow(Box<Type>, Box<Type>),
 }
@@ -35,7 +35,52 @@ pub enum TermNode {
     Var(String),
     Lam(String, Term),
     App(Term, Term),
-    BoolLit(bool),
     NatLit(u64),
     PrimApp(PrimFn, Vec<Term>),
+}
+
+#[derive(Clone)]
+pub enum Value {
+    Nat(u64),
+    Fun(String, Term, Context),
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Value::Nat(n) => write!(f, "{}", n),
+            Value::Fun(_, _, _) => write!(f, "<fun>"),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ContextNode(Vec<(String, Value)>);
+
+#[derive(Debug, Clone)]
+pub struct Context(rc::Rc<ContextNode>);
+
+impl Context {
+    pub fn empty() -> Self {
+        Context(rc::Rc::new(ContextNode(Vec::new())))
+    }
+
+    pub fn lookup(&self, x: &String) -> Option<Value> {
+        let Context(rc_ctx_node) = self;
+        let ContextNode(var_val_list) = rc_ctx_node.as_ref();
+        for (y, value) in var_val_list.iter().rev() {
+            if x == y {
+                return Some(value.clone());
+            }
+        }
+        None
+    }
+
+    pub fn extend(&self, x: &String, v: Value) -> Context {
+        let Context(rc_ctx_node) = self;
+        let ContextNode(var_val_list) = rc_ctx_node.as_ref();
+        let mut extended_var_val_list = var_val_list.clone();
+        extended_var_val_list.push((x.to_string(), v.clone()));
+        Context(rc::Rc::new(ContextNode(extended_var_val_list)))
+    }
 }

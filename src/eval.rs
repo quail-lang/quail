@@ -1,22 +1,34 @@
+use std::rc;
+
 use crate::ast::Term;
 use crate::ast::PrimFn;
 use crate::ast::TermNode::*;
 
-pub fn eval(t: Term) -> Term {
+use crate::ast::Value;
+use crate::ast::Context;
+
+pub fn eval(t: Term) -> Value {
+    eval_ctx(t, Context::empty())
+}
+
+pub fn eval_ctx(t: Term, ctx: Context) -> Value {
     use crate::ast::TermNode::*;
     match t.as_ref() {
-        Var(_x) => t.clone(),
-        Lam(x, body) => Lam(x.clone(), eval(body.clone())).into(),
-        App(f, v) => match f.as_ref() {
-            Lam(x, body) => {
-                let reduced_body = subst(body.clone(), x.clone(), v.clone());
-                eval(reduced_body)
-            },
-            _ => panic!("Applied argument to non-function."),
+        Var(x) => ctx.lookup(x).expect(&format!("I wanted a value for {:?} in the context {:?}, lol!", x, ctx)),
+        Lam(x, body) => {
+            Value::Fun(x.clone(), body.clone(), ctx.clone())
         },
-        BoolLit(_b) => t.clone(),
-        NatLit(_n) => t.clone(),
-        PrimApp(prim_fn, vs) => eval_prim(prim_fn.clone(), vs.clone()),
+        App(f, v) => {
+            match eval_ctx(f.clone(), ctx.clone()) {
+                Value::Fun(x, body, local_ctx) => {
+                    let v_value = eval_ctx(v.clone(), ctx.clone());
+                    eval_ctx(body, local_ctx.extend(&x, v_value))
+                },
+                _ => panic!("Can't apply a value to a non-function {:?}.", &f),
+            }
+        },
+        NatLit(n) => Value::Nat(*n),
+        PrimApp(prim_fn, vs) => unimplemented!(), //eval_prim(prim_fn.clone(), vs.clone()),
     }
 }
 
@@ -42,31 +54,5 @@ fn eval_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Term {
             }
             panic!("Can't add on non-Nat.")
         },
-    }
-}
-
-pub fn subst(t: Term, x: String, v: Term) -> Term {
-    match t.as_ref() {
-        Var(y) => {
-            if x == *y {
-                v.clone()
-            } else {
-                t.clone()
-            }
-        }
-        Lam(y, body) => {
-            if x == *y {
-                t.clone()
-            } else {
-                Lam(y.to_string(), subst(body.clone(), x, v)).into()
-            }
-        }
-        App(f, w) => App(
-            subst(f.clone(), x.clone(), v.clone()),
-            subst(w.clone(), x.clone(), v.clone()),
-        ).into(),
-        BoolLit(_b) => t.clone(),
-        NatLit(_n) => t.clone(),
-        PrimApp(_f, _vs) => t.clone()
     }
 }

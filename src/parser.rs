@@ -140,7 +140,7 @@ impl Tokenizer {
 
     fn tokenize_identifier(&mut self) -> Token {
         let keywords: HashMap<String, Token> = vec![
-            ("fn".to_string(), Token::Lambda),
+            ("fun".to_string(), Token::Lambda),
         ].iter().cloned().collect();
         let first_char = self.input[self.cur];
         assert!(first_char.is_ascii_alphabetic());
@@ -305,7 +305,6 @@ mod test_parser {
 pub fn parse(input: impl Into<String>) -> Result<ast::Term, ParseErr> {
     let mut toker = Tokenizer::new(input);
     let tokens = toker.tokenize();
-    println!("{:?}", &tokens);
 
     let mut parser = Parser::new(tokens);
 
