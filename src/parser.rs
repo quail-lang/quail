@@ -1,9 +1,178 @@
 use crate::ast;
 use std::fmt;
+use std::collections::HashMap;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Token {
+    Ident(String),
+    Lit(u64),
+    Lambda,
+    FatArrow,
+    LeftParen,
+    RightParen,
+}
+
+
+pub struct Tokenizer {
+    input: Vec<char>,
+    cur: usize,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn tokenize_ident_then_lit() {
+        let mut toker = Tokenizer::new("abcd 123");
+        assert_eq!(
+            toker.tokenize(),
+            vec![Token::Ident("abcd".to_string()), Token::Lit(123)]
+        );
+    }
+
+    #[test]
+    fn tokenize_empty_string() {
+        let mut toker = Tokenizer::new("");
+        assert_eq!(
+            toker.tokenize(),
+            vec![]
+        );
+    }
+
+    #[test]
+    fn tokenize_test_a() {
+        let mut toker = Tokenizer::new("(a)");
+        assert_eq!(
+            toker.tokenize(),
+            vec![Token::LeftParen, Token::Ident("a".to_string()), Token::RightParen]
+        );
+    }
+
+    #[test]
+    fn tokenize_test_b() {
+        let mut toker = Tokenizer::new("fn x => x");
+        assert_eq!(
+            toker.tokenize(),
+            vec![Token::Lambda, Token::Ident("x".to_string()), Token::FatArrow, Token::Ident("x".to_string())]
+        );
+    }
+}
+
+impl Tokenizer {
+
+    pub(crate) fn new(input: impl Into<String>) -> Self {
+        Tokenizer {
+            input: input.into().chars().collect(),
+            cur: 0,
+        }
+    }
+
+    pub(crate) fn tokenize(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        while let Some(head_char) = self.peek() {
+            if head_char == ' ' {
+                self.consume();
+            } else if head_char == '(' {
+                tokens.push(Token::LeftParen);
+                self.consume();
+            } else if head_char == ')' {
+                tokens.push(Token::RightParen);
+                self.consume();
+            } else if head_char.is_ascii_digit() {
+                let token = self.tokenize_literal();
+                tokens.push(token);
+            } else if head_char.is_ascii_alphabetic() {
+                let token = self.tokenize_identifier();
+                tokens.push(token);
+            } else if head_char == '=' {
+                match self.peek_ahead(1) {
+                    Some('>') => {
+                        tokens.push(Token::FatArrow);
+                        self.consume();
+                        self.consume();
+                    },
+                    Some(_) => panic!("Uh oh #1"),
+                    None => panic!("Uh oh #2"),
+                }
+            } else {
+                panic!("Uh oh #3");
+            }
+        }
+        tokens
+    }
+
+    fn peek(&mut self) -> Option<char> {
+        self.peek_ahead(0)
+    }
+
+    fn peek_ahead(&mut self, k: usize) -> Option<char> {
+        match self.input.get(self.cur + k) {
+            Some(c) => Some(*c),
+            None => None,
+        }
+    }
+
+    fn consume(&mut self) -> Option<char> {
+        match self.peek() {
+            Some(peek_char) => {
+                self.cur += 1;
+                Some(peek_char)
+            },
+            None => None,
+        }
+    }
+
+    fn tokenize_literal(&mut self) -> Token {
+        let first_digit = self.input[self.cur];
+        assert!(first_digit.is_ascii_digit());
+        let mut token_string = String::new();
+        token_string.push(first_digit);
+
+        let mut new_cur = self.cur + 1;
+        while new_cur < self.input.len() && self.input[new_cur].is_ascii_digit() {
+            token_string.push(self.input[new_cur]);
+            new_cur += 1;
+        }
+
+        self.cur = new_cur;
+        return Token::Lit(token_string.parse::<u64>().expect("Should be valid integer."));
+    }
+
+    fn tokenize_identifier(&mut self) -> Token {
+        let keywords: HashMap<String, Token> = vec![
+            ("fn".to_string(), Token::Lambda),
+        ].iter().cloned().collect();
+        let first_char = self.input[self.cur];
+        assert!(first_char.is_ascii_alphabetic());
+        let mut token_string = String::new();
+        token_string.push(first_char);
+
+        let mut new_cur = self.cur + 1;
+        while new_cur < self.input.len() && self.input[new_cur].is_ascii_alphabetic() {
+            token_string.push(self.input[new_cur]);
+            new_cur += 1;
+        }
+
+        self.cur = new_cur;
+        match keywords.get(&token_string) {
+            Some(token) => token.clone(),
+            None => Token::Ident(token_string)
+        }
+    }
+}
 
 pub fn parse(input: impl Into<String>) -> ast::Term {
     let expr = parse_sexpr(input).expect("Could not parse.");
     expr_to_term(expr)
+}
+
+fn assert_atom(expr: Expr) -> String {
+    let Expr(expr_node) = expr;
+    match *expr_node {
+        ExprNode::Atom(s) => s,
+        _ => panic!("assertion failed: not an Atom."),
+    }
 }
 
 fn expr_to_term(expr: Expr) -> ast::Term {
@@ -13,14 +182,21 @@ fn expr_to_term(expr: Expr) -> ast::Term {
             let Expr(head_expr_node) = exprs[0].clone();
             match *head_expr_node {
                 ExprNode::Atom(v) => {
-                    assert!(exprs.len() == 2);
-                    let x = expr_to_term(exprs[1].clone());
                     match v.as_ref() {
-                        "fn" => unimplemented!(),
-                        vs => ast::TermNode::App(
-                            ast::TermNode::Var(vs.to_string()).into(),
-                            x,
-                        ).into(),
+                        "fn" => {
+                            ast::TermNode::Lam(
+                                assert_atom(exprs[1].clone()),
+                                ast::Type::Bool,
+                                expr_to_term(exprs[2].clone()),
+                            ).into()
+                        },
+                        vs => {
+                            let x = expr_to_term(exprs[1].clone());
+                            ast::TermNode::App(
+                                ast::TermNode::Var(vs.to_string()).into(),
+                                x,
+                            ).into()
+                        },
                     }
                 },
                 f => {
