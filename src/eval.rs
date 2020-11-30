@@ -1,5 +1,7 @@
 use std::rc;
 
+use crate::parser;
+
 use crate::ast;
 use crate::ast::Program;
 use crate::ast::Term;
@@ -9,7 +11,7 @@ use crate::ast::Value;
 use crate::ast::Context;
 
 pub fn exec(program: &Program) {
-    let Item::Def(_, main_body) = program.item("main").expect("There should be a main in your program").clone();
+    let Item::Def(_, main_body) = program.def("main").expect("There should be a main in your program").clone();
     eval(main_body, prelude_ctx(), program);
 }
 
@@ -92,7 +94,7 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
             match ctx.lookup(x) {
                 Some(v) => v,
                 None => {
-                    let Item::Def(_, body) = program.item(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
+                    let Item::Def(_, body) = program.def(x.to_string()).expect(&format!("Unbound variable {:?}", &x));
                     eval(body.clone(), ctx, program)
                 },
             }
@@ -130,9 +132,39 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
     }
 }
 
-fn eval_hole(ctx: Context, program: &Program, contents: &str) -> ! {
-    println!("Contents: {:?}", contents);
-    println!("Context: {:?}", ctx);
-    println!("Program: {:?}", program);
-    panic!("Encountered hole");
+fn eval_hole(ctx: Context, program: &Program, contents: &str) -> Value {
+    println!("Encountered hole:");
+    println!("");
+    if contents != "" {
+        println!("    Note: {:?}", contents);
+    }
+
+    println!("");
+    println!("    Bindings:");
+    for (name, value) in ctx.bindings().into_iter() {
+        println!("        {} = {:?}", name, &value);
+    }
+
+    println!("");
+    println!("    Globals:");
+    for item in program.items.iter() {
+        let Item::Def(name, _) = item;
+        println!("        {}", &name);
+    }
+
+    println!("");
+    interp(ctx, program)
+}
+
+fn interp(ctx: Context, program: &Program) -> Value {
+    let mut program_text = String::new();
+    print!("> ");
+    use std::io::Write;
+    std::io::stdout().flush().expect("Couldn't flush stdout??");
+    std::io::stdin().read_line(&mut program_text).expect("Couldn't read from stdin??");
+
+    match parser::parse_term(program_text) {
+        Ok(term) => eval(term, ctx, program),
+        Err(e) => panic!(format!("There was an error {:?}", e)),
+    }
 }

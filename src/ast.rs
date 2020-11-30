@@ -7,12 +7,13 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn item(&self, name: impl Into<String>) -> Option<&Item> {
+    pub fn def(&self, name: impl Into<String>) -> Option<&Item> {
         let name: String = name.into();
         for item in &self.items {
-            let Item::Def(item_name, _) = &item;
-            if *item_name == name {
-                return Some(item);
+            if let Item::Def(item_name, _) = &item {
+                if *item_name == name {
+                    return Some(item);
+                }
             }
         }
         None
@@ -139,5 +140,11 @@ impl Context {
             ctx = ctx.extend(name, value.clone());
         }
         ctx
+    }
+
+    pub fn bindings(&self) -> Vec<(String, Value)> {
+        let Context(context_node_rc) = self;
+        let ContextNode(bindings) = context_node_rc.as_ref();
+        bindings.clone()
     }
 }
