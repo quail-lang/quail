@@ -24,34 +24,10 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
                     Ok(line) => {
                         match parse_command(&line) {
                             None => (),
-                            Some(Command::Fill(term_text)) => {
-                                match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
-                                    Ok((term, number_of_new_holes)) => {
-                                        runtime.add_holes(number_of_new_holes);
-                                        let value = runtime.eval(term, ctx.clone());
-                                        println!("=> {:?}", &value);
-                                        runtime.fill_hole(hole_info.hole_id, value.clone());
-                                        return value;
-                                    },
-                                    Err(e) => println!("There was an error {:?}", e),
-                                }
+                            Some(command) => match exec_command(runtime, &command, hole_info, &ctx) {
+                                None => (),
+                                Some(value) => return value,
                             },
-                            Some(Command::Eval(term_text)) => {
-                                match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
-                                    Ok((term, number_of_new_holes)) => {
-                                        runtime.add_holes(number_of_new_holes);
-                                        let value = runtime.eval(term, ctx.clone());
-                                        println!("=> {:?}", &value);
-                                    },
-                                    Err(e) => println!("There was an error {:?}", e),
-                                }
-                            },
-                            Some(Command::Invalid(invalid_cmd)) => {
-                                println!("Invalid command: {}", invalid_cmd);
-                                println!("Hint: Try 'help' if you don't know what to do.");
-                            },
-                            Some(Command::Abort) => std::process::exit(1),
-                            Some(Command::Help) => println!("{}", include_str!("../assets/help/hole.txt")),
                         }
                     },
                     Err(ReadlineError::Interrupted) => (),
@@ -63,6 +39,46 @@ pub fn fill(runtime: &mut Runtime, hole_info: &HoleInfo, ctx: Context) -> Value 
             }
         }
     }
+}
+
+fn exec_command(
+    runtime: &mut Runtime,
+    command: &Command,
+    hole_info: &HoleInfo,
+    ctx: &Context,
+) -> Option<Value> {
+    match command {
+        Command::Fill(term_text) => {
+            match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
+                Ok((term, number_of_new_holes)) => {
+                    runtime.add_holes(number_of_new_holes);
+                    let value = runtime.eval(term, ctx.clone());
+                    println!("=> {:?}", &value);
+                    runtime.fill_hole(hole_info.hole_id, value.clone());
+                    return Some(value);
+                },
+                Err(e) => println!("There was an error {:?}", e),
+            }
+        },
+        Command::Eval(term_text) => {
+            match parser::parse_term(runtime.next_hole_id(), None, &term_text) {
+                Ok((term, number_of_new_holes)) => {
+                    runtime.add_holes(number_of_new_holes);
+                    let value = runtime.eval(term, ctx.clone());
+                    println!("=> {:?}", &value);
+                },
+                Err(e) => println!("There was an error {:?}", e),
+            }
+        },
+        Command::Invalid(invalid_cmd) => {
+            println!("Invalid command: {}", invalid_cmd);
+            println!("Hint: Try 'help' if you don't know what to do.");
+        },
+        Command::Abort => std::process::exit(1),
+        Command::Help => println!("{}", include_str!("../assets/help/hole.txt")),
+    }
+
+    None
 }
 
 enum Command {
