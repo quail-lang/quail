@@ -63,6 +63,16 @@ pub enum TermNode {
     NatLit(u64),
 }
 
+pub fn find_matching_arm(tag: &CtorTag, match_arms: &Vec<MatchArm>) -> MatchArm {
+    for match_arm in match_arms {
+        let MatchArm(pat, _body) = match_arm;
+        if pat[0] == *tag {
+            return match_arm.clone();
+        }
+    }
+    panic!(format!("No matching arm found for tag {:?}", tag))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MatchArm(pub Pattern, pub Term);
 
@@ -71,13 +81,23 @@ pub type Pattern = Vec<String>;
 #[derive(Clone)]
 pub enum Value {
     Nat(u64),
+    Ctor(CtorTag, Vec<Value>),
     Fun(String, Term, Context),
     Prim(rc::Rc<Box<Fn(Value) -> Value>>),
 }
 
+pub type CtorTag = String;
+
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Value::Ctor(tag, contents) => {
+                write!(f, "{}", &tag)?;
+                for value in contents {
+                    write!(f, " ({:?})", value)?;
+                }
+                Ok(())
+            },
             Value::Nat(n) => write!(f, "{}", n),
             Value::Fun(_, _, _) => write!(f, "<fun>"),
             Value::Prim(_) => write!(f, "<prim>"),
@@ -113,5 +133,13 @@ impl Context {
         let mut extended_var_val_list = var_val_list.clone();
         extended_var_val_list.push((x.to_string(), v.clone()));
         Context(rc::Rc::new(ContextNode(extended_var_val_list)))
+    }
+
+    pub fn extend_many(&self, bindings: &[(String, Value)]) -> Context {
+        let mut ctx = self.clone();
+        for (name, value) in bindings.iter() {
+            ctx = ctx.extend(name, value.clone());
+        }
+        ctx
     }
 }

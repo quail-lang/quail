@@ -1,5 +1,6 @@
 use std::rc;
 
+use crate::ast;
 use crate::ast::Program;
 use crate::ast::Term;
 use crate::ast::TermNode;
@@ -14,8 +15,17 @@ pub fn exec(program: &Program) {
 }
 
 fn succ_prim(v: Value) -> Value {
-    match v {
+    match v.clone() {
         Value::Nat(n) => Value::Nat(n + 1),
+        Value::Ctor(tag, _) => {
+            if tag == "Zero" {
+                Value::Ctor("Succ".into(), vec![Value::Ctor("Zero".into(), vec![])])
+            } else if tag == "Succ" {
+                Value::Ctor("Succ".into(), vec![v.clone()])
+            } else {
+                panic!("Invalid thing to succ: {:?}", &v)
+            }
+        },
         other => panic!(format!("Couldn't succ {:?}", other)),
     }
 }
@@ -55,10 +65,11 @@ fn ifzero_prim(v: Value) -> Value {
 
 pub fn prelude_ctx() -> Context {
     Context::empty()
-        .extend(&"succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
         .extend(&"pred".into(), Value::Prim(rc::Rc::new(Box::new(pred_prim))))
         .extend(&"println".into(), Value::Prim(rc::Rc::new(Box::new(println_prim))))
         .extend(&"ifzero".into(), Value::Prim(rc::Rc::new(Box::new(ifzero_prim))))
+        .extend(&"Zero".into(), Value::Ctor("Zero".into(), Vec::new()))
+        .extend(&"Succ".into(), Value::Prim(rc::Rc::new(Box::new(succ_prim))))
 }
 
 pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
@@ -96,9 +107,19 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
         },
         Match(t, match_arms) => {
             let t_value = eval(t.clone(), ctx.clone(), program);
-            // TODO
-            let body = match_arms[0].1.clone();
-            eval(body, ctx, program)
+            match t_value {
+                Value::Ctor(tag, contents) => {
+                    let ast::MatchArm(pat, body) = ast::find_matching_arm(&tag, &match_arms);
+
+                    let bind_names: Vec<String> = pat[1..].into_iter().map(|name| name.clone()).collect();
+                    let bind_values: Vec<Value> = contents.clone();
+                    let bindings: Vec<(String, Value)> = bind_names.into_iter().zip(bind_values).collect();
+
+                    let extended_ctx = ctx.extend_many(&bindings);
+                    eval(body, extended_ctx, program)
+                },
+                _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
+            }
         },
         NatLit(n) => Value::Nat(*n),
     }
