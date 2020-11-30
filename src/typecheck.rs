@@ -1,3 +1,4 @@
+use std::fmt;
 use std::rc;
 use std::collections::HashSet;
 use std::collections::HashMap;
@@ -259,5 +260,22 @@ impl AsRef<TypeNode> for Type {
         use std::borrow::Borrow;
         let Type(rc_tn) = self;
         rc_tn.borrow()
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.as_ref() {
+            TypeNode::Atom(atom) => write!(f, "{}", atom),
+            TypeNode::Arrow(dom, cod) => {
+                if let TypeNode::Atom(_) = dom.as_ref() {
+                    write!(f, "{}", dom)?;
+                } else {
+                    write!(f, "({})", dom)?;
+                }
+                write!(f, " -> ")?;
+                write!(f, "{}", cod)
+            }
+        }
     }
 }
