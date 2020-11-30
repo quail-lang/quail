@@ -154,10 +154,7 @@ fn eval_hole(hole_id: HoleId, ctx: Context, program: &Program, contents: &str) -
     }
 
     println!("");
-    interp(ctx, program)
-}
 
-fn interp(ctx: Context, program: &Program) -> Value {
     let mut program_text = String::new();
     print!("> ");
     use std::io::Write;
