@@ -1,5 +1,4 @@
 use std::collections;
-use std::fmt;
 use std::rc;
 
 #[derive(Clone, Debug)]
@@ -62,9 +61,8 @@ fn eval(t: Term) -> Term {
 
 fn eval_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Term {
     use TermNode::*;
-    use PrimFn::*;
     match prim_fn {
-        Succ => {
+        PrimFn::Succ => {
             assert!(vs.len() == 1, "Succ takes 1 argument.");
             let v = &vs[0];
             if let NatLit(n) = v.as_ref() {
@@ -73,7 +71,7 @@ fn eval_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Term {
                 panic!("Can't succ on non-Nat.")
             }
         },
-        Add => {
+        PrimFn::Add => {
             assert!(vs.len() == 2, "Add takes 2 arguments.");
             let v1 = &vs[0];
             let v2 = &vs[1];
@@ -99,7 +97,7 @@ fn subst(t: Term, x: String, v: Term) -> Term {
         }
         Lam(y, ty, body) => {
             if x == *y {
-                t.clone() 
+                t.clone()
             } else {
                 Lam(y.to_string(), ty.clone(), subst(body.clone(), x, v)).into()
             }
@@ -111,6 +109,56 @@ fn subst(t: Term, x: String, v: Term) -> Term {
         BoolLit(b) => t.clone(),
         NatLit(n) => t.clone(),
         PrimApp(f, vs) => t.clone()
+    }
+}
+
+fn type_of(t: Term) -> Type {
+    let ctx = collections::HashMap::new();
+    type_of_ctx(t, ctx)
+}
+
+fn type_of_ctx(t: Term, ctx: collections::HashMap<String, Type>) -> Type {
+    use TermNode::*;
+    match t.as_ref() {
+        Var(y) => {
+            ctx.get(y).unwrap().clone()
+        }
+        Lam(y, ty, body) => {
+            // TODO
+            let mut new_ctx = ctx.clone();
+            new_ctx.insert(y.clone(), ty.clone());
+            let cod = type_of_ctx(body.clone(), new_ctx);
+            Type::Arrow(Box::new(ty.clone()), Box::new(cod))
+        }
+        App(f, w) => {
+            // TODO
+            let f_ty = type_of_ctx(f.clone(), ctx.clone());
+            let w_ty = type_of_ctx(w.clone(), ctx.clone());
+            if let Type::Arrow(dom, cod) = f_ty {
+                *cod
+            } else {
+                panic!("Impossible"); // TODO
+            }
+        },
+        BoolLit(b) => Type::Bool,
+        NatLit(n) => Type::Nat,
+        PrimApp(f, vs) => type_of_prim(*f, vs.clone()),
+    }
+}
+
+fn type_of_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Type {
+    match prim_fn {
+        PrimFn::Succ => {
+            assert!(vs.len() == 1, "Succ takes 1 argument.");
+            let _v = &vs[0];
+            Type::Nat
+        },
+        PrimFn::Add => {
+            assert!(vs.len() == 2, "Add takes 2 argument.");
+            let _v1 = &vs[0];
+            let _v2 = &vs[1];
+            Type::Nat
+        }
     }
 }
 
@@ -127,5 +175,7 @@ fn main() {
         term.clone(),
     ).into();
     dbg!(&term2);
-    dbg!(eval(term2));
+    dbg!(eval(term2.clone()));
+    dbg!(type_of(term2.clone()));
+    dbg!(type_of(eval(term2.clone())));
 }
