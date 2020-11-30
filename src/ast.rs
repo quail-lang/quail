@@ -15,10 +15,13 @@ pub struct Def(pub String, pub Term);
 #[derive(Clone, Debug)]
 pub struct Import(pub String);
 
-#[derive(Clone, Debug)]
-pub enum Type {
-    Nat,
-    Arrow(Box<Type>, Box<Type>),
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Type(pub rc::Rc<TypeNode>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TypeNode {
+    Atom(String),
+    Arrow(Type, Type),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
