@@ -33,7 +33,7 @@ impl From<TermNode> for Term {
 #[derive(Clone, Debug)]
 pub enum TermNode {
     Var(String),
-    Lam(String, Type, Term),
+    Lam(String, Term),
     App(Term, Term),
     BoolLit(bool),
     NatLit(u64),

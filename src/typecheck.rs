@@ -5,6 +5,7 @@ use super::ast::PrimFn;
 
 use std::collections::HashMap;
 
+/*
 pub fn type_of(t: Term) -> Type {
     let ctx = HashMap::new();
     type_of_ctx(t, ctx)
@@ -15,7 +16,7 @@ fn type_of_ctx(t: Term, ctx: HashMap<String, Type>) -> Type {
         ast::TermNode::Var(y) => {
             ctx.get(y).unwrap().clone()
         }
-        ast::TermNode::Lam(y, ty, body) => {
+        ast::TermNode::Lam(y, body) => {
             // TODO
             let mut new_ctx = ctx.clone();
             new_ctx.insert(y.clone(), ty.clone());
@@ -53,3 +54,4 @@ fn type_of_prim(prim_fn: PrimFn, vs: Vec<Term>) -> Type {
         }
     }
 }
+*/

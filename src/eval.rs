@@ -6,9 +6,9 @@ pub fn eval(t: Term) -> Term {
     use crate::ast::TermNode::*;
     match t.as_ref() {
         Var(_x) => t.clone(),
-        Lam(x, ty, body) => Lam(x.clone(), ty.clone(), eval(body.clone())).into(),
+        Lam(x, body) => Lam(x.clone(), eval(body.clone())).into(),
         App(f, v) => match f.as_ref() {
-            Lam(x, _ty, body) => {
+            Lam(x, body) => {
                 let reduced_body = subst(body.clone(), x.clone(), v.clone());
                 eval(reduced_body)
             },
@@ -54,11 +54,11 @@ pub fn subst(t: Term, x: String, v: Term) -> Term {
                 t.clone()
             }
         }
-        Lam(y, ty, body) => {
+        Lam(y, body) => {
             if x == *y {
                 t.clone()
             } else {
-                Lam(y.to_string(), ty.clone(), subst(body.clone(), x, v)).into()
+                Lam(y.to_string(), subst(body.clone(), x, v)).into()
             }
         }
         App(f, w) => App(
