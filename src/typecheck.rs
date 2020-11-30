@@ -114,18 +114,52 @@ pub fn check_type_match(
     inductive_typedefs: &HashMap<String, InductiveTypeDef>,
     typ: Type,
 ) -> Result<(), TypeErr> {
-    let match_tags: HashSet<CtorTag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
+    let match_tags: Vec<CtorTag> = match_arms.iter().map(|MatchArm(pat, _arm_term)| pat[0].to_string()).collect();
     // TODO: handle bottom type
     let first_ctor_tag = &match_tags.iter().cloned().collect::<Vec<CtorTag>>()[0];
     match lookup_typedef_by_ctor_tag(first_ctor_tag, inductive_typedefs) {
         None => Err(format!("Unknown ctor {:?}", first_ctor_tag)),
         Some(inductive_typedef) => {
+            let typedef_tags = inductive_typedef.ctor_tags();
+            analyze_coverage(&typedef_tags, &match_tags)?;
             check_type(discriminee.clone(), ctx.clone(), inductive_typedefs, TypeNode::Atom(inductive_typedef.name.to_string()).into())?;
             for match_arm in match_arms {
                 check_type_match_arm(match_arm, inductive_typedef, &ctx, inductive_typedefs, &typ)?;
             }
             Ok(())
         },
+    }
+}
+
+fn analyze_coverage(typedef_tags: &Vec<CtorTag>, match_tags: &Vec<CtorTag>) -> Result<(), TypeErr> {
+    let match_tags_set: HashSet<_> = match_tags.iter().cloned().collect();
+    let typedef_tags_set: HashSet<_> = typedef_tags.iter().cloned().collect();
+
+    let unexpected_tags: HashSet<_> = match_tags_set.difference(&typedef_tags_set).collect();
+    let missing_tags: HashSet<_> = typedef_tags_set.difference(&match_tags_set).collect();
+
+    let mut sorted_match_tags = match_tags.clone();
+    sorted_match_tags.sort();
+    let mut duplicate_tags: HashSet<CtorTag> = HashSet::new();
+    let match_tag_with_next: Vec<_> = sorted_match_tags
+        .iter()
+        .zip(sorted_match_tags[1..].iter())
+        .collect();
+
+    for (cur, next) in match_tag_with_next.into_iter() {
+        if cur == next {
+            duplicate_tags.insert(cur.to_string());
+        }
+    }
+
+    if !unexpected_tags.is_empty() {
+        Err(format!("Found unexpected tags: {:?}", unexpected_tags))
+    } else if !missing_tags.is_empty() {
+        Err(format!("Expected missing tags: {:?}", missing_tags))
+    } else if !duplicate_tags.is_empty() {
+        Err(format!("Duplicate tags: {:?}", duplicate_tags))
+    } else {
+        Ok(())
     }
 }
 
