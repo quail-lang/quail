@@ -9,8 +9,6 @@ use crate::typecontext::TypeContext;
 
 use ast::TermNode;
 use ast::Def;
-use ast::HoleId;
-use ast::HoleInfo;
 use ast::Import;
 use ast::MatchArm;
 use ast::Variable;
@@ -29,15 +27,6 @@ pub struct Runtime {
     /// already. This is currently being used to break cyclic imports.
     pub imports: Vec<String>,
 
-    /// holes - keeps track of what values have been supplied for each hole.
-    pub holes: HashMap<HoleId, Value>,
-
-    /// This keeps track of the number of holes. This information is not
-    /// captured by the holes field because the holes HashMap is sparse. The
-    /// number_of_holes value is used to inform the parser which HoleID to start with
-    /// as it parses a new term.
-    pub number_of_holes: u64,
-
     /// This keeps track of the builtin typedef data for inductive
     /// types, such as Nat and Bool.
     pub inductive_typedefs: HashMap<String, TypeDef>,
@@ -53,8 +42,6 @@ pub struct Runtime {
     pub builtin_ctx: Context,
     /// Tracks the types of the builtins, like println and show.
     pub builtin_type_ctx: TypeContext,
-
-    pub fill_hole_fn: Box<dyn FnMut(&HoleInfo, Context) -> Value>,
 }
 
 impl Runtime {
@@ -74,12 +61,8 @@ impl Runtime {
             builtin_type_ctx = builtin_type_ctx.append(inductive_typedef.ctor_type_context());
         }
 
-        let fill_hole: Box<dyn FnMut(&HoleInfo, Context) -> Value> = Box::new(|_hole_info, _ctx| { panic!("Unfilled hole"); });
-
         Runtime {
             imports: vec![],
-            holes: HashMap::new(),
-            number_of_holes: 0,
 
             inductive_typedefs,
 
@@ -88,7 +71,6 @@ impl Runtime {
 
             definition_type_ctx: TypeContext::empty(),
             builtin_type_ctx,
-            fill_hole_fn: fill_hole,
         }
     }
 
@@ -104,8 +86,7 @@ impl Runtime {
         resolved_import.reader.read_to_string(&mut module_text)?;
         let source = Some(resolved_import.source);
 
-        let (module, number_of_new_holes) = parser::parse_module(self.next_hole_id(), source, &module_text)?;
-        self.add_holes(number_of_new_holes);
+        let module = parser::parse_module(source, &module_text)?;
 
         for import in module.imports {
             let Import(name) = import;
@@ -138,29 +119,8 @@ impl Runtime {
         Ok(())
     }
 
-    /// Calculate the HoleId to the next hole loaded into the Runtime. Used as an input whenever
-    /// running the parser.
-    pub fn next_hole_id(&self) -> HoleId {
-        self.number_of_holes as HoleId
-    }
-
-    pub fn add_holes(&mut self, number_of_holes: u64) {
-        self.number_of_holes += number_of_holes;
-    }
-
     pub fn exec(&mut self) {
         self.definition_ctx.lookup("main", 0).expect("There should be a main in your module");
-    }
-
-    /// Fills a given hole with a given value.
-    pub fn fill_hole(&mut self, hole_id: HoleId, value: Value) {
-        self.holes.insert(hole_id, value);
-    }
-
-    /// Retrieves a value for the given hole.
-    pub fn hole_value(&self, hole_id: HoleId) -> Option<Value> {
-        assert!((hole_id as u64) < self.number_of_holes, "Invalid HoleId!");
-        self.holes.get(&hole_id).cloned()
     }
 
     /// Applies to a function its list of arguments and returns the result.
@@ -252,7 +212,7 @@ impl Runtime {
         match t {
             TermNode::Var(v) => self.eval_variable(v, ctx).expect(&format!("Unbound variable {:?}", v)),
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),
-            TermNode::Hole(hole_info) => (*self.fill_hole_fn)(hole_info, ctx),
+            TermNode::Hole(_hole_info) => unimplemented!(),
             TermNode::As(term, _typ) => self.eval(&term, ctx),
             TermNode::Match(t, match_arms) => self.eval_match(t, match_arms, ctx),
             TermNode::Lam(x, body) => Value::Fun(x.clone(), body.clone(), ctx.clone()),

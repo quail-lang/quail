@@ -3,7 +3,6 @@ pub mod parser;
 pub mod ast;
 pub mod runtime;
 pub mod typecheck;
-pub mod hole;
 pub mod builtins;
 pub mod interpreter;
 pub mod types;

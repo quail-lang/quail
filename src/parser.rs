@@ -25,17 +25,13 @@ struct Parser {
 }
 
 impl Parser {
-    pub fn new(starting_hole_id: HoleId, tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Parser {
             tokens,
             cur: 0,
-            next_hole_id: starting_hole_id,
+            next_hole_id: 0,
             hole_count: 0,
         }
-    }
-
-    pub fn number_of_holes(&self) -> u64 {
-        self.hole_count
     }
 
     fn peek(&mut self) -> Option<Token> {
@@ -467,39 +463,39 @@ impl Parser {
     }
 }
 
-pub fn parse_term(starting_hole_id: HoleId, source: Option<String>, input: &str) -> Result<(Term, u64), ParseErr> {
+pub fn parse_term(source: Option<String>, input: &str) -> Result<Term, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
-    let mut parser = Parser::new(starting_hole_id, tokens);
+    let mut parser = Parser::new(tokens);
 
     let term = parser.parse_term()?;
-    Ok((term, parser.number_of_holes()))
+    Ok(term)
 }
 
-pub fn parse_module(starting_hole_id: HoleId, source: Option<String>, input: &str) -> Result<(Module, u64), ParseErr> {
+pub fn parse_module(source: Option<String>, input: &str) -> Result<Module, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
-    let mut parser = Parser::new(starting_hole_id, tokens);
+    let mut parser = Parser::new(tokens);
 
     let module = parser.parse_module()?;
-    Ok((module, parser.number_of_holes()))
+    Ok(module)
 }
 
 pub fn parse_import(source: Option<String>, input: &str) -> Result<Import, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
-    let mut parser = Parser::new(0 as HoleId, tokens);
+    let mut parser = Parser::new(tokens);
     parser.parse_import()
 }
 
-pub fn parse_def(starting_hole_id: HoleId, source: Option<String>, input: &str) -> Result<Def, ParseErr> {
+pub fn parse_def(source: Option<String>, input: &str) -> Result<Def, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;
 
-    let mut parser = Parser::new(starting_hole_id, tokens);
+    let mut parser = Parser::new(tokens);
     parser.parse_def()
 }
 

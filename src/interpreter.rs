@@ -106,7 +106,7 @@ fn repl_line_import(runtime: &mut Runtime, line: &str) {
 }
 
 fn repl_line_def(runtime: &mut Runtime, line: &str) {
-    match parser::parse_def(runtime.next_hole_id(), None, &line) {
+    match parser::parse_def(None, &line) {
         Ok(definition) => {
             match runtime.define(&definition) {
                 Ok(()) => {
@@ -121,8 +121,8 @@ fn repl_line_def(runtime: &mut Runtime, line: &str) {
 }
 
 fn repl_line_term(runtime: &mut Runtime, line: &str) {
-    match parser::parse_term(runtime.next_hole_id(), None, &line) {
-        Ok((term, number_of_new_holes)) => {
+    match parser::parse_term(None, &line) {
+        Ok(term) => {
             let type_context = runtime.builtin_type_ctx.append(runtime.definition_type_ctx.clone());
             match typecheck::infer_type(
                     &term,
@@ -130,7 +130,6 @@ fn repl_line_term(runtime: &mut Runtime, line: &str) {
                     &runtime.inductive_typedefs,
                 ) {
                 Ok(typ) => {
-                    runtime.add_holes(number_of_new_holes);
                     let value = runtime.eval(&term, Context::empty());
                     println!("=> {:?} : {}", &value, *typ);
                 },
