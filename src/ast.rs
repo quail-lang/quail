@@ -60,6 +60,7 @@ pub enum TermNode {
     App(Term, Term),
     Let(String, Term, Term),
     Match(Term, Vec<MatchArm>),
+    Hole,
     NatLit(u64),
 }
 

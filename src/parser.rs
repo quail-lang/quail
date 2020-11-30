@@ -13,6 +13,11 @@ pub enum Token {
     FatArrow,
     LeftParen,
     RightParen,
+    LeftCurly,
+    RightCurly,
+    LeftSquare,
+    RightSquare,
+    Question,
     Match,
     With,
 }
@@ -92,14 +97,22 @@ impl Tokenizer {
     pub(crate) fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
 
+        let single_char_tokens: HashMap<char, Token> = vec![
+            ('(', Token::LeftParen),
+            (')', Token::RightParen),
+            ('[', Token::LeftSquare),
+            (']', Token::RightSquare),
+            ('{', Token::LeftCurly),
+            ('}', Token::RightCurly),
+            ('?', Token::Question),
+        ].into_iter().collect();
+
         while let Some(head_char) = self.peek() {
             if head_char.is_ascii_whitespace() {
                 self.consume();
-            } else if head_char == '(' {
-                tokens.push(Token::LeftParen);
-                self.consume();
-            } else if head_char == ')' {
-                tokens.push(Token::RightParen);
+            } else if single_char_tokens.contains_key(&head_char) {
+                let token = single_char_tokens.get(&head_char).unwrap().clone();
+                tokens.push(token);
                 self.consume();
             } else if head_char.is_ascii_digit() {
                 let token = self.tokenize_literal();
@@ -289,6 +302,32 @@ impl Parser {
         Ok(term)
     }
 
+    fn parse_hole(&mut self) -> Result<Option<ast::Term>, ParseErr> {
+        self.consume_expect(Token::Question)?;
+        match self.peek() {
+            Some(Token::LeftCurly) => {
+                let mut level = 0;
+                while let Some(token) = self.consume() {
+                    if token == Token::LeftCurly {
+                        level += 1;
+                    } else if token == Token::RightCurly {
+                        level -= 1;
+                    }
+                    if level == 0 {
+                        break;
+                    }
+                }
+
+                if level != 0 {
+                    Err("Unclosed { when parsing a hole.".to_string())
+                } else {
+                    Ok(Some(ast::TermNode::Hole.into()))
+                }
+            }
+            _ => Ok(Some(ast::TermNode::Hole.into())),
+        }
+    }
+
     fn parse_term_part(&mut self) -> Result<Option<ast::Term>, ParseErr> {
         match self.peek() {
             Some(token) => match token {
@@ -317,6 +356,7 @@ impl Parser {
                     let body = self.parse_term()?;
                     Ok(Some(ast::TermNode::Let(bind_var, value, body).into()))
                 },
+                Token::Question => Ok(self.parse_hole()?),
                 _ => Ok(None),
             },
             None => Ok(None),

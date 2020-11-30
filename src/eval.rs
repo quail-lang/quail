@@ -121,6 +121,13 @@ pub fn eval(t: Term, ctx: Context, program: &Program) -> Value {
                 _ => panic!(format!("Expected a constructor during match statement, but found {:?}", &t_value)),
             }
         },
+        Hole => eval_hole(ctx, program),
         NatLit(n) => Value::Nat(*n),
     }
+}
+
+fn eval_hole(ctx: Context, program: &Program) -> ! {
+    println!("Context: {:?}", ctx);
+    println!("Program: {:?}", program);
+    panic!("Encountered hole");
 }
