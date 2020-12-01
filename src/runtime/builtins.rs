@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::rc;
+use std::convert::TryInto;
 
 use crate::runtime::Value;
 use crate::runtime::Context;
@@ -28,6 +29,13 @@ pub struct PrimDef {
     pub name: String,
     pub typ: Type,
     pub code: PrimCode,
+}
+
+impl std::fmt::Debug for PrimDef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "PrimDef {{ name: {:?}, typ: {:?}, code: ? }}", self.name, self.typ)
+    }
+
 }
 
 ///
@@ -155,46 +163,24 @@ pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
 }
 
 pub fn builtin_primdefs() -> Vec<PrimDef> {
-    let println_primdef = PrimDef::new(
-        "println".to_string(),
-          TypeNode::Arrow(
-            TypeNode::Atom("Str".to_string()).into(),
-            TypeNode::Atom("Top".to_string()).into(),
-        ).into(),
-        Box::new(println_prim),
-    );
+    let mut primdefs = Vec::new();
 
-    let show_primdef = PrimDef::new(
-        "show".to_string(),
-        TypeNode::Arrow(
-            TypeNode::Atom("Nat".to_string()).into(),
-            TypeNode::Atom("Str".to_string()).into(),
-        ).into(),
-        Box::new(show_prim),
-    );
+    macro_rules! primdef {
+        ($name:ident, $type:literal) => {
+            primdefs.push(PrimDef::new(
+                    stringify!($name).to_string(),
+                    $type.try_into().unwrap(),
+                    Box::new(super::prims::$name),
+                ));
+        }
+    }
 
-    let show_list_primdef = PrimDef::new(
-        "show_list".to_string(),
-        TypeNode::Arrow(
-            TypeNode::Atom("List".to_string()).into(),
-            TypeNode::Atom("Str".to_string()).into(),
-        ).into(),
-        Box::new(show_list_prim),
-    );
+    primdef!(println, "Str -> Top");
+    primdef!(show, "Nat -> Str");
+    primdef!(show_list, "List -> Str");
+    primdef!(cat, "Str -> Str -> Str");
 
-    let cat_primdef = PrimDef::new(
-        "cat".to_string(),
-        TypeNode::Arrow(
-            TypeNode::Atom("Str".to_string()).into(),
-            TypeNode::Arrow(
-                TypeNode::Atom("Str".to_string()).into(),
-                TypeNode::Atom("Str".to_string()).into(),
-            ).into(),
-        ).into(),
-        Box::new(cat_prim),
-    );
-
-    vec![println_primdef, show_primdef, show_list_primdef, cat_primdef]
+    primdefs
 }
 
 pub fn builtins_ctx() -> Context {
@@ -219,107 +205,4 @@ pub fn builtins_type_ctx() -> TypeContext {
         );
     }
     ctx
-}
-
-fn println_prim(_runtime: &mut Runtime, vs: Vec<Value>) -> Value {
-    assert_eq!(vs.len(), 1, "println must have exactly one argument");
-    let v = vs[0].clone();
-    println!("{:?}", v);
-    Value::Ctor("unit".into(), Vec::new())
-}
-
-fn show_prim(runtime: &mut Runtime, vs: Vec<Value>) -> Value {
-    assert_eq!(vs.len(), 1, "show must have exactly one argument");
-    let v = vs[0].clone();
-    match &v {
-        Value::Ctor(tag, _) => {
-            if tag == "zero" || tag == "succ" {
-                Value::Str(format!("{}", nat_to_u64(v)))
-            } else if tag == "nil" || tag == "cons" {
-                let val_vec = list_to_vec(v.clone());
-                let str_value_vec: Vec<Value> = val_vec.into_iter()
-                    .map(|v| show_prim(runtime, vec![v]))
-                    .collect();
-                let s: String = format!("{:?}", str_value_vec);
-                Value::Str(s)
-            } else {
-                Value::Str(format!("{:?}", v))
-            }
-        },
-        _ => panic!("Can't show this {:?}", &v),
-    }
-}
-
-fn show_list_prim(runtime: &mut Runtime, vs: Vec<Value>) -> Value {
-    assert_eq!(vs.len(), 1, "show_list must have exactly one argument");
-    let v = vs[0].clone();
-    match &v {
-        Value::Ctor(tag, _) => {
-            if tag == "zero" || tag == "succ" {
-                Value::Str(format!("{}", nat_to_u64(v)))
-            } else if tag == "nil" || tag == "cons" {
-                let val_vec = list_to_vec(v.clone());
-                let str_value_vec: Vec<Value> = val_vec.into_iter()
-                    .map(|v| show_prim(runtime, vec![v]))
-                    .collect();
-                let s: String = format!("{:?}", str_value_vec);
-                Value::Str(s)
-            } else {
-                Value::Str(format!("{:?}", v))
-            }
-        },
-        _ => panic!("Can't show this {:?}", &v),
-    }
-}
-
-fn list_to_vec(v: Value) -> Vec<Value> {
-    match v {
-        Value::Ctor(tag, contents) => {
-            if tag == "nil" {
-                Vec::new()
-            } else if tag == "cons" {
-                let head = &contents[0];
-                let tail = &contents[1];
-                let mut result = list_to_vec(tail.clone());
-                result.insert(0, head.clone());
-                result
-            } else {
-                 panic!("This isn't a list.")
-            }
-        },
-        _ => panic!("This isn't a list."),
-    }
-}
-
-fn nat_to_u64(v: Value) -> u64 {
-    let mut val = v;
-    let mut result = 0;
-
-    loop {
-        match val {
-            Value::Ctor(tag, contents) => {
-                if tag == "zero" {
-                    break
-                } else if tag == "succ" {
-                    val = contents[0].clone();
-                    result += 1;
-                } else {
-                     panic!("This isn't a nat.")
-                }
-            },
-            _ => panic!("This isn't a nat."),
-        }
-    }
-
-    result
-}
-
-fn cat_prim(_runtime: &mut Runtime, vs: Vec<Value>) -> Value {
-    assert_eq!(vs.len(), 2, "show_list must have exactly two arguments");
-    let v1 = vs[0].clone();
-    let v2 = vs[1].clone();
-    match (&v1, &v2) {
-        (Value::Str(s1), Value::Str(s2)) => Value::Str(format!("{}{}", s1, s2)),
-        _ => panic!("Arguments to cat must both be Str: {:?} {:?}", &v1, &v2),
-    }
 }

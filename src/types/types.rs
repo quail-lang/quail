@@ -1,6 +1,8 @@
 use std::rc;
 use std::fmt;
 
+use crate::parser;
+
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Type(rc::Rc<TypeNode>);
@@ -20,6 +22,13 @@ impl From<TypeNode> for Type {
     }
 }
 
+impl std::convert::TryFrom<&str> for Type {
+    type Error = parser::ParseErr;
+
+    fn try_from(typ: &str) -> Result<Self, Self::Error> {
+        parser::parse_type(None, typ)
+    }
+}
 
 impl std::ops::Deref for Type {
     type Target = TypeNode;

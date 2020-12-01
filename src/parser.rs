@@ -15,7 +15,7 @@ use ast::Import;
 use ast::Pattern;
 use ast::Variable;
 
-type ParseErr = String;
+pub type ParseErr = String;
 
 struct Parser {
     tokens: Vec<Token>,
@@ -345,6 +345,16 @@ pub fn parse_def(source: Option<String>, input: &str) -> Result<Def, ParseErr> {
 
     let mut parser = Parser::new(tokens);
     parser.parse_def()
+}
+
+pub fn parse_type(source: Option<String>, input: &str) -> Result<Type, ParseErr> {
+    let mut toker = Tokenizer::new(source, input);
+    let tokens = toker.tokenize()?;
+
+    let mut parser = Parser::new(tokens);
+
+    let term = parser.parse_type()?;
+    Ok(term)
 }
 
 fn usize_to_nat_term(v: usize) -> Term {
