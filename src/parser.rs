@@ -311,6 +311,19 @@ impl Parser {
     }
 }
 
+pub fn parse_variable(source: Option<String>, input: &str) -> Result<Variable, ParseErr> {
+    let mut toker = Tokenizer::new(source, input);
+    let tokens = toker.tokenize()?;
+
+    let mut parser = Parser::new(tokens);
+
+    if let TermNode::Var(var) = parser.parse_variable()?.as_node() {
+        Ok(var.clone())
+    } else {
+        unreachable!()
+    }
+}
+
 pub fn parse_term(source: Option<String>, input: &str) -> Result<Term, ParseErr> {
     let mut toker = Tokenizer::new(source, input);
     let tokens = toker.tokenize()?;

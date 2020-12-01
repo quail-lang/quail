@@ -10,6 +10,14 @@ pub struct ResolvedImport {
     pub source: String,
 }
 
+impl ResolvedImport {
+    pub fn text(&mut self) -> String {
+        let mut result = String::new();
+        self.reader.read_to_string(&mut result).unwrap();
+        result
+    }
+}
+
 pub struct FileImportResolver(PathBuf);
 
 impl FileImportResolver {
