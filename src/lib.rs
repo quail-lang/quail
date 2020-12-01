@@ -1,5 +1,4 @@
 mod ast;
-mod builtins;
 pub mod interpreter;
 pub mod parser;
 mod tests;

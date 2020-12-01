@@ -146,7 +146,7 @@ pub fn parse_typedef(types_text_lines: &mut dyn Iterator<Item=&str>) -> Option<T
 ///
 pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
     let mut typedefs = vec![];
-    let mut types_text_lines = include_str!("../assets/types.txt").lines();
+    let mut types_text_lines = include_str!("../../assets/types.txt").lines();
     while let Some(typedef) = parse_typedef(&mut types_text_lines) {
         typedefs.push(typedef);
     }

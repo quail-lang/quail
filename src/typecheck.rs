@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::ast::TermNode;
 use crate::ast::Tag;
 use crate::ast::MatchArm;
-use crate::builtins::TypeDef;
+use crate::runtime::TypeDef;
 use crate::typecontext::TypeContext;
 use crate::types::Type;
 use crate::types::TypeNode;

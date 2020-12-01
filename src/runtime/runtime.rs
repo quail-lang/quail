@@ -3,7 +3,6 @@ use std::io::Read;
 
 use crate::parser;
 use crate::ast;
-use crate::builtins;
 use crate::typecheck;
 use crate::typecontext::TypeContext;
 use crate::resolver::ImportResolver;
@@ -16,6 +15,7 @@ use ast::Variable;
 use ast::Term;
 use builtins::TypeDef;
 
+use super::builtins;
 use super::value::Value;
 use super::context::Context;
 
