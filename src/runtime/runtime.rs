@@ -4,8 +4,8 @@ use std::io::Read;
 use crate::parser;
 use crate::ast;
 use crate::types::check;
-use crate::types::context::TypeContext;
 use crate::resolver::ImportResolver;
+use crate::context::Context;
 
 use ast::TermNode;
 use ast::Def;
@@ -13,11 +13,11 @@ use ast::Import;
 use ast::MatchArm;
 use ast::Variable;
 use ast::Term;
+use ast::Type;
 use builtins::TypeDef;
 
 use super::builtins;
 use super::value::Value;
-use super::context::Context;
 
 ///
 /// Runtime is the global store for all of the information loaded into the program.
@@ -33,15 +33,15 @@ pub struct Runtime {
 
     /// Tracks the value and types of all of the
     /// definitions of top-level bindings that have been loaded into the Runtime.
-    pub definition_ctx: Context,
+    pub definition_ctx: Context<Value>,
     /// Tracks types of all of the definitions of top-level bindings
     /// that have been loaded into the Runtime.
-    pub definition_type_ctx: TypeContext,
+    pub definition_type_ctx: Context<Type>,
 
     /// Tracks the values of the builtins, like println and show.
-    pub builtin_ctx: Context,
+    pub builtin_ctx: Context<Value>,
     /// Tracks the types of the builtins, like println and show.
-    pub builtin_type_ctx: TypeContext,
+    pub builtin_type_ctx: Context<Type>,
 }
 
 impl Runtime {
@@ -69,7 +69,7 @@ impl Runtime {
             definition_ctx: Context::empty(),
             builtin_ctx,
 
-            definition_type_ctx: TypeContext::empty(),
+            definition_type_ctx: Context::empty(),
             builtin_type_ctx,
         }
     }
@@ -155,7 +155,7 @@ impl Runtime {
         }
     }
 
-    fn eval_variable(&self, v: &Variable, ctx: Context) -> Option<Value> {
+    fn eval_variable(&self, v: &Variable, ctx: Context<Value>) -> Option<Value> {
         let x = &v.name;
         let k = v.layer;
 
@@ -164,7 +164,7 @@ impl Runtime {
             .or_else(|| self.builtin_ctx.lookup(x, k))
     }
 
-    pub fn eval_match(&mut self, t: &TermNode, match_arms: &[MatchArm], ctx: Context) -> Value {
+    pub fn eval_match(&mut self, t: &TermNode, match_arms: &[MatchArm], ctx: Context<Value>) -> Value {
         let t_value = self.eval(&t, ctx.clone());
         let t_value = self.force(&t_value);
         match t_value {
@@ -192,7 +192,7 @@ impl Runtime {
         }
     }
 
-    pub fn eval_app(&mut self, f: &Term, vs: &[Term], ctx: Context) -> Value {
+    pub fn eval_app(&mut self, f: &Term, vs: &[Term], ctx: Context<Value>) -> Value {
         let f_value = self.eval(&f, ctx.clone());
         let f_value = self.force(&f_value);
         let vs_values: Vec<Value> = vs.iter()
@@ -201,14 +201,14 @@ impl Runtime {
         self.apply(f_value, vs_values)
     }
 
-    pub fn eval_let(&mut self, x: &str, v: &Term, body: &Term, ctx: Context) -> Value {
+    pub fn eval_let(&mut self, x: &str, v: &Term, body: &Term, ctx: Context<Value>) -> Value {
         let v_value = self.eval(&v, ctx.clone());
         let extended_ctx = ctx.extend(x, v_value);
         self.eval(&body, extended_ctx)
     }
 
     /// Evaluates a term in a given local context and returns the result.
-    pub fn eval(&mut self, t: &TermNode, ctx: Context) -> Value {
+    pub fn eval(&mut self, t: &TermNode, ctx: Context<Value>) -> Value {
         match t {
             TermNode::Var(v) => self.eval_variable(v, ctx).expect(&format!("Unbound variable {:?}", v)),
             TermNode::StrLit(contents) => Value::Str(contents.to_string()),

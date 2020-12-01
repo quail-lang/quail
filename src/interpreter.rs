@@ -6,11 +6,11 @@ use crate::runtime;
 use crate::parser;
 use crate::types::check;
 use crate::resolver;
+use crate::context::Context;
 
 use ast::Import;
 use ast::Def;
 use runtime::Runtime;
-use runtime::Context;
 
 pub struct Interpreter {
     /// The REPL and hole-filling mode both use rustyline, which is

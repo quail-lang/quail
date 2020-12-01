@@ -7,12 +7,11 @@ use crate::ast::MatchArm;
 use crate::runtime::TypeDef;
 use crate::ast::Type;
 use crate::ast::TypeNode;
-
-use super::context::TypeContext;
+use crate::context::Context;
 
 pub type TypeErr = String;
 
-pub fn infer_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>) -> Result<Type, TypeErr> {
+pub fn infer_type(t: &TermNode, ctx: Context<Type>, inductive_typedefs: &HashMap<String, TypeDef>) -> Result<Type, TypeErr> {
     match t {
         TermNode::Var(v) => {
             let x = &v.name;
@@ -55,7 +54,7 @@ pub fn infer_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<S
     }
 }
 
-pub fn check_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<String, TypeDef>, typ: Type) -> Result<(), TypeErr> {
+pub fn check_type(t: &TermNode, ctx: Context<Type>, inductive_typedefs: &HashMap<String, TypeDef>, typ: Type) -> Result<(), TypeErr> {
     match t {
         TermNode::Var(v) => {
             let x = &v.name;
@@ -113,7 +112,7 @@ pub fn check_type(t: &TermNode, ctx: TypeContext, inductive_typedefs: &HashMap<S
 pub fn check_type_match(
     discriminee: &TermNode,
     match_arms: &[MatchArm],
-    ctx: TypeContext,
+    ctx: Context<Type>,
     inductive_typedefs: &HashMap<String, TypeDef>,
     typ: Type,
 ) -> Result<(), TypeErr> {
@@ -183,7 +182,7 @@ fn analyze_coverage(typedef_tags: &Vec<Tag>, match_tags: &Vec<Tag>) -> Result<()
 fn check_type_match_arm(
     match_arm: &MatchArm,
     inductive_typedef: &TypeDef,
-    ctx: &TypeContext,
+    ctx: &Context<Type>,
     inductive_typedefs: &HashMap<String, TypeDef>,
     typ: &Type,
 ) -> Result<(), TypeErr> {

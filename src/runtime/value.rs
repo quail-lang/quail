@@ -2,8 +2,8 @@ use std::fmt;
 use std::rc;
 
 use super::Runtime;
-use super::context::Context;
 
+use crate::context::Context;
 use crate::ast::Tag;
 use crate::ast::Term;
 
@@ -11,10 +11,10 @@ use crate::ast::Term;
 pub enum Value {
     Ctor(Tag, Vec<Value>),
     CoCtor(Tag, Vec<Value>),
-    Fun(String, Term, Context),
+    Fun(String, Term, Context<Value>),
     Prim(rc::Rc<PrimFn>),
     Str(String),
-    Thunk(Term, Context),
+    Thunk(Term, Context<Value>),
 }
 
 type PrimFn = dyn Fn(&mut Runtime, Vec<Value>) -> Value;

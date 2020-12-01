@@ -2,13 +2,12 @@ use std::collections::HashMap;
 use std::rc;
 use std::convert::TryInto;
 
+use crate::context::Context;
 use crate::runtime::Value;
-use crate::runtime::Context;
 use crate::ast::Tag;
 use crate::runtime::Runtime;
 use crate::ast::Type;
 use crate::ast::TypeNode;
-use crate::types::context::TypeContext;
 
 #[derive(Debug, Clone)]
 pub enum Flavor {
@@ -65,7 +64,7 @@ impl TypeDef {
     ///
     /// Create a value-level context containing the constructors for this inductive type.
     ///
-    pub fn ctor_context(&self) -> Context {
+    pub fn ctor_context(&self) -> Context<Value> {
         let ctors: Vec<&Tag> = self.ctor_types.keys().collect();
         let mut ctx = Context::empty();
         for tag in ctors {
@@ -80,9 +79,9 @@ impl TypeDef {
     ///
     /// Create a type-level context containing the constructors for this inductive type.
     ///
-    pub fn ctor_type_context(&self) -> TypeContext {
+    pub fn ctor_type_context(&self) -> Context<Type> {
         let ctor_types: Vec<(&Tag, &Type)> = self.ctor_types.iter().collect();
-        let mut ctx = TypeContext::empty();
+        let mut ctx = Context::empty();
         for (tag, typ) in ctor_types {
             ctx = ctx.extend(tag, typ.clone())
         }
@@ -183,7 +182,7 @@ pub fn builtin_primdefs() -> Vec<PrimDef> {
     primdefs
 }
 
-pub fn builtins_ctx() -> Context {
+pub fn builtins_ctx() -> Context<Value> {
     let mut ctx = Context::empty();
 
     for primdef in builtin_primdefs() {
@@ -195,8 +194,8 @@ pub fn builtins_ctx() -> Context {
     ctx
 }
 
-pub fn builtins_type_ctx() -> TypeContext {
-    let mut ctx = TypeContext::empty();
+pub fn builtins_type_ctx() -> Context<Type> {
+    let mut ctx = Context::empty();
 
     for primdef in builtin_primdefs() {
         ctx = ctx.extend(

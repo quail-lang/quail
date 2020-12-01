@@ -5,4 +5,5 @@ mod tests;
 pub mod tokenizer;
 pub mod resolver;
 pub mod runtime;
+pub mod context;
 mod types;
