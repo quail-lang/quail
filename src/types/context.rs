@@ -1,14 +1,11 @@
 use std::rc;
-use super::types::Type;
-
+use crate::ast::Type;
 
 #[derive(Debug)]
 struct TypeContextNode(Vec<(String, Type)>);
 
-
 #[derive(Debug, Clone)]
 pub struct TypeContext(rc::Rc<TypeContextNode>);
-
 
 impl TypeContext {
     pub fn empty() -> Self {

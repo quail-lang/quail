@@ -5,10 +5,10 @@ use crate::ast::TermNode;
 use crate::ast::Tag;
 use crate::ast::MatchArm;
 use crate::runtime::TypeDef;
+use crate::ast::Type;
+use crate::ast::TypeNode;
 
 use super::context::TypeContext;
-use super::types::Type;
-use super::types::TypeNode;
 
 pub type TypeErr = String;
 

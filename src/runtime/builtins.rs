@@ -6,8 +6,8 @@ use crate::runtime::Value;
 use crate::runtime::Context;
 use crate::ast::Tag;
 use crate::runtime::Runtime;
-use crate::types::Type;
-use crate::types::TypeNode;
+use crate::ast::Type;
+use crate::ast::TypeNode;
 use crate::types::context::TypeContext;
 
 #[derive(Debug, Clone)]

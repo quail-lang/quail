@@ -1,6 +1,7 @@
-use crate::types::Type;
-use crate::tokenizer::Loc;
+use std::rc;
 
+use crate::parser;
+use crate::tokenizer::Loc;
 
 #[derive(Clone, Debug)]
 pub struct Module {
@@ -51,6 +52,16 @@ pub struct MatchArm(pub Pattern, pub Term);
 pub type Pattern = Vec<String>;
 
 pub type Tag = String;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Type(rc::Rc<TypeNode>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TypeNode {
+    Atom(String),
+    Arrow(Type, Type),
+    Forall(String, Type),
+}
 
 impl std::ops::Deref for Term {
     type Target = TermNode;
@@ -113,4 +124,54 @@ pub fn find_matching_arm(tag: &Tag, match_arms: &[MatchArm]) -> MatchArm {
         }
     }
     panic!(format!("No matching arm found for tag {:?}", tag))
+}
+
+impl From<TypeNode> for Type {
+    fn from(tn: TypeNode) -> Self {
+        Type(rc::Rc::new(tn))
+    }
+}
+
+impl std::convert::TryFrom<&str> for Type {
+    type Error = parser::ParseErr;
+
+    fn try_from(typ: &str) -> Result<Self, Self::Error> {
+        parser::parse_type(None, typ)
+    }
+}
+
+impl std::ops::Deref for Type {
+    type Target = TypeNode;
+
+    fn deref(&self) -> &TypeNode {
+        use std::borrow::Borrow;
+        let Type(rc_tn) = self;
+        rc_tn.borrow()
+    }
+}
+
+impl AsRef<TypeNode> for Type {
+    fn as_ref(&self) -> &TypeNode {
+         use std::borrow::Borrow;
+         let Type(rc_tn) = self;
+         rc_tn.borrow()
+    }
+}
+
+impl std::fmt::Display for TypeNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            TypeNode::Atom(atom) => write!(f, "{}", atom),
+            TypeNode::Arrow(dom, cod) => {
+                if let TypeNode::Atom(_) = **dom {
+                    write!(f, "{}", **dom)?;
+                } else {
+                    write!(f, "({})",**dom)?;
+                }
+                write!(f, " -> ")?;
+                write!(f, "{}", **cod)
+            }
+            TypeNode::Forall(atom, typ) => write!(f, "[{}] -> {}", atom, **typ),
+        }
+    }
 }

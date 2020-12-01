@@ -1,7 +1,5 @@
 use crate::tokenizer::Token;
 use crate::tokenizer::Tokenizer;
-use crate::types::Type;
-use crate::types::TypeNode;
 use crate::ast;
 
 use ast::HoleId;
@@ -14,6 +12,8 @@ use ast::Def;
 use ast::Import;
 use ast::Pattern;
 use ast::Variable;
+use ast::Type;
+use ast::TypeNode;
 
 pub type ParseErr = String;
 
