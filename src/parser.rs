@@ -24,6 +24,20 @@ struct Parser {
     hole_count: u64,
 }
 
+macro_rules! consume_expected_token {
+    ($tokenizer:expr, $ctor:ident, $token:literal) => {
+        let expected_token = $token;
+        match $tokenizer.peek() {
+            Some(Token::$ctor(_)) => {
+                $tokenizer.consume();
+            },
+            Some(peek_token) => return Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
+            None => return Err(format!("Expected {:?} but found end of input.", expected_token)),
+        }
+    }
+
+}
+
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser {
@@ -55,172 +69,6 @@ impl Parser {
         }
     }
 
-    fn consume_expect_lambda(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "fun";
-        match self.peek() {
-            Some(Token::Lambda(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_fat_arrow(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "=>";
-        match self.peek() {
-            Some(Token::FatArrow(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_arrow(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "=>";
-        match self.peek() {
-            Some(Token::Arrow(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_left_paren(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "(";
-        match self.peek() {
-            Some(Token::LeftParen(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-    fn consume_expect_right_paren(&mut self) -> Result<(), ParseErr> {
-        let expected_token = ")";
-        match self.peek() {
-            Some(Token::RightParen(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_let(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "let";
-        match self.peek() {
-            Some(Token::Let(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_equals(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "=";
-        match self.peek() {
-            Some(Token::Equals(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-    fn consume_expect_colon(&mut self) -> Result<(), ParseErr> {
-        let expected_token = ":";
-        match self.peek() {
-            Some(Token::Colon(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_match(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "match";
-        match self.peek() {
-            Some(Token::Match(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_with(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "with";
-        match self.peek() {
-            Some(Token::With(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_def(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "def";
-        match self.peek() {
-            Some(Token::Def(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_in(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "in";
-        match self.peek() {
-            Some(Token::In(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_import(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "import";
-        match self.peek() {
-            Some(Token::Import(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
-    fn consume_expect_as(&mut self) -> Result<(), ParseErr> {
-        let expected_token = "as";
-        match self.peek() {
-            Some(Token::As(_)) => {
-                self.consume();
-                Ok(())
-            },
-            Some(peek_token) => Err(format!("Expected {:?} but found {:?}.", expected_token, peek_token)),
-            None => Err(format!("Expected {:?} but found end of input.", expected_token)),
-        }
-    }
-
     fn consume_identifier(&mut self) -> Result<String, ParseErr> {
         match self.consume() {
             Some(Token::Ident(_, name)) => Ok(name),
@@ -247,9 +95,9 @@ impl Parser {
     }
 
     fn parse_lambda(&mut self) -> Result<Term, ParseErr> {
-        self.consume_expect_lambda()?;
+        consume_expected_token!(self, Lambda, "fun");
         let bind_vars = self.consume_identifier_plus()?;
-        self.consume_expect_fat_arrow()?;
+        consume_expected_token!(self, FatArrow, "=>");
         let body = self.parse_term()?;
 
         let mut term = body;
@@ -290,18 +138,18 @@ impl Parser {
                 },
                 Token::Lambda(_) => Ok(Some(self.parse_lambda()?)),
                 Token::LeftParen(_) => {
-                    self.consume_expect_left_paren()?;
+                    consume_expected_token!(self, LeftParen, "(");
                     let term = self.parse_term();
-                    self.consume_expect_right_paren()?;
+                    consume_expected_token!(self, RightParen, ")");
                     Ok(Some(term?))
                 }
                 Token::RightParen(_) => Ok(None),
                 Token::Let(_) => {
-                    self.consume_expect_let()?;
+                    consume_expected_token!(self, Let, "let");
                     let bind_var = self.consume_identifier()?;
-                    self.consume_expect_equals()?;
+                    consume_expected_token!(self, Equals, "=");
                     let value = self.parse_term()?;
-                    self.consume_expect_in()?;
+                    consume_expected_token!(self, In, "in");
                     let body = self.parse_term()?;
                     Ok(Some(TermNode::Let(bind_var, value, body).into()))
                 },
@@ -335,9 +183,9 @@ impl Parser {
     }
 
     fn parse_match_arm(&mut self) -> Result<MatchArm, ParseErr> {
-        self.consume_expect_with()?;
+        consume_expected_token!(self, With, "with");
         let idents = self.parse_pattern()?;
-        self.consume_expect_fat_arrow()?;
+        consume_expected_token!(self, FatArrow, "=>");
         let body = self.parse_term()?;
         Ok(MatchArm(idents, body))
     }
@@ -351,7 +199,7 @@ impl Parser {
     }
 
     fn parse_match(&mut self) -> Result<Term, ParseErr> {
-        self.consume_expect_match()?;
+        consume_expected_token!(self, Match, "match");
         let discriminee = self.parse_term()?;
         let match_arms = self.parse_match_arm_star()?;
         Ok(TermNode::Match(discriminee, match_arms).into())
@@ -360,9 +208,9 @@ impl Parser {
     fn parse_type_part(&mut self) -> Result<Type, ParseErr> {
         match self.peek() {
             Some(Token::LeftParen(_)) => {
-                self.consume_expect_left_paren()?;
+                consume_expected_token!(self, LeftParen, "(");
                 let typ = self.parse_type()?;
-                self.consume_expect_right_paren()?;
+                consume_expected_token!(self, RightParen, ")");
                 return Ok(typ);
             },
             Some(Token::Ident(_, _name)) => {
@@ -377,7 +225,7 @@ impl Parser {
     fn parse_type(&mut self) -> Result<Type, ParseErr> {
         let mut type_parts = vec![self.parse_type_part()?];
         while let Some(Token::Arrow(_)) = self.peek() {
-            self.consume_expect_arrow()?;
+            consume_expected_token!(self, Arrow, "->");
             type_parts.push(self.parse_type_part()?);
         }
 
@@ -415,7 +263,7 @@ impl Parser {
             };
 
             if let Some(Token::As(_)) = self.peek() {
-                self.consume_expect_as()?;
+                consume_expected_token!(self, As, "as");
                 let typ = self.parse_type()?;
                 term = TermNode::As(term, typ).into();
             }
@@ -425,17 +273,17 @@ impl Parser {
     }
 
     fn parse_def(&mut self) -> Result<Def, ParseErr> {
-        self.consume_expect_def()?;
+        consume_expected_token!(self, Def, "def");
         let binding_name = self.consume_identifier()?;
-        self.consume_expect_colon()?;
+        consume_expected_token!(self, Colon, ":");
         let typ = self.parse_type()?;
-        self.consume_expect_equals()?;
+        consume_expected_token!(self, Equals, "=");
         let body = self.parse_term()?;
         Ok(Def(binding_name.to_string(), typ, body))
     }
 
     fn parse_import(&mut self) -> Result<Import, ParseErr> {
-        self.consume_expect_import()?;
+        consume_expected_token!(self, Import, "import");
         let import_name = self.consume_identifier()?;
         Ok(Import(import_name))
     }
