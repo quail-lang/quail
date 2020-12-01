@@ -18,3 +18,7 @@ structopt = "0.3.5"
 [[bin]]
 name = "quail"
 path = "src/bin/quail.rs"
+
+[[bin]]
+name = "quail-tokenize"
+path = "src/bin/quail_tokenize.rs"

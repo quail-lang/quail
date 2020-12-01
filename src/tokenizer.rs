@@ -43,6 +43,89 @@ pub struct Loc {
 
 type TokenizeErr = String;
 
+impl Token {
+    pub fn name(&self) -> &'static str {
+        use Token::*;
+        match self {
+            Ident(_loc, _x) => "IDENT",
+            Hole(_loc, _x, _contents) => "HOLE",
+            Lambda(_loc) => "LAMBDA",
+            Let(_loc) => "LET",
+            Def(_loc) => "DEF",
+            Equals(_loc) => "EQUALS",
+            In(_loc) => "IN",
+            Arrow(_loc) => "ARROW",
+            FatArrow(_loc) => "FATARROW",
+            LeftParen(_loc) => "LEFTPAREN",
+            RightParen(_loc) => "RIGHTPAREN",
+            LeftCurly(_loc) => "LEFTCURLY",
+            RightCurly(_loc) => "RIGHTCURLY",
+            Match(_loc) => "MATCH",
+            With(_loc) => "WITH",
+            Import(_loc) => "IMPORT",
+            Colon(_loc) => "COLON",
+            Dollar(_loc) => "DOLLAR",
+            As(_loc) => "AS",
+            Str(_loc, _val) => "STR",
+            Nat(_loc, _val) => "NAT",
+        }
+    }
+
+    pub fn show(&self) -> String {
+        use Token::*;
+        match self {
+            Ident(_loc, x) => format!("IDENT({})", x),
+            Hole(_loc, x, _contents) => format!("HOLE({:?}, ...)", x),
+            Lambda(_loc) => format!("LAMBDA"),
+            Let(_loc) => format!("LET"),
+            Def(_loc) => format!("DEF"),
+            Equals(_loc) => format!("EQUALS"),
+            In(_loc) => format!("IN"),
+            Arrow(_loc) => format!("ARROW"),
+            FatArrow(_loc) => format!("FATARROW"),
+            LeftParen(_loc) => format!("LEFTPAREN"),
+            RightParen(_loc) => format!("RIGHTPAREN"),
+            LeftCurly(_loc) => format!("LEFTCURLY"),
+            RightCurly(_loc) => format!("RIGHTCURLY"),
+            Match(_loc) => format!("MATCH"),
+            With(_loc) => format!("WITH"),
+            Import(_loc) => format!("IMPORT"),
+            Colon(_loc) => format!("COLON"),
+            Dollar(_loc) => format!("DOLLAR"),
+            As(_loc) => format!("AS"),
+            Str(_loc, val) => format!("STR({})", val),
+            Nat(_loc, val) => format!("NAT({})", val),
+        }
+    }
+
+    pub fn loc(&self) -> &Loc {
+        use Token::*;
+        match self {
+            Ident(loc, _x) => loc,
+            Hole(loc, _x, _contents) => loc,
+            Lambda(loc) => loc,
+            Let(loc) => loc,
+            Def(loc) => loc,
+            Equals(loc) => loc,
+            In(loc) => loc,
+            Arrow(loc) => loc,
+            FatArrow(loc) => loc,
+            LeftParen(loc) => loc,
+            RightParen(loc) => loc,
+            LeftCurly(loc) => loc,
+            RightCurly(loc) => loc,
+            Match(loc) => loc,
+            With(loc) => loc,
+            Import(loc) => loc,
+            Colon(loc) => loc,
+            Dollar(loc) => loc,
+            As(loc) => loc,
+            Str(loc, _val) => loc,
+            Nat(loc, _val) => loc,
+        }
+    }
+}
+
 impl Tokenizer {
     pub fn new(source: Option<String>, input: &str) -> Self {
         Tokenizer {
@@ -59,6 +142,27 @@ impl Tokenizer {
             tokens.push(token);
         }
         Ok(tokens)
+    }
+
+    fn tokenize_lines(&mut self) -> Result<Vec<Vec<Token>>, TokenizeErr> {
+        let toks: Vec<Token> = self.tokenize()?;
+
+        let mut lines: Vec<Vec<Token>> = Vec::new();
+        let mut cur_line: Vec<Token> = Vec::new();
+
+        let mut line_no = 0;
+
+        for tok in toks {
+            while tok.loc().line > line_no {
+                line_no += 1;
+                lines.push(cur_line);
+                cur_line = Vec::new();
+            }
+            cur_line.push(tok);
+        }
+        lines.push(cur_line);
+
+        Ok(lines)
     }
 
     fn double_character_token(&mut self) -> Option<Token> {
@@ -364,4 +468,14 @@ impl fmt::Display for Loc {
         }
         Ok(())
     }
+}
+
+pub fn tokenize(source: Option<String>, input: &str) -> Result<Vec<Token>, TokenizeErr> {
+    let mut tokenizer = Tokenizer::new(source, input);
+    tokenizer.tokenize()
+}
+
+pub fn tokenize_lines(source: Option<String>, input: &str) -> Result<Vec<Vec<Token>>, TokenizeErr> {
+    let mut tokenizer = Tokenizer::new(source, input);
+    tokenizer.tokenize_lines()
 }

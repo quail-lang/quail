@@ -94,6 +94,17 @@ impl HoleInfo {
     }
 }
 
+impl std::fmt::Display for Variable {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if self.layer == 0 {
+            write!(f, "{}", self.name)
+        } else {
+            write!(f, "{}${}", self.name, self.layer)
+        }
+    }
+
+}
+
 pub fn find_matching_arm(tag: &Tag, match_arms: &[MatchArm]) -> MatchArm {
     for match_arm in match_arms {
         let MatchArm(pat, _body) = match_arm;
