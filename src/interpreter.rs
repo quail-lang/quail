@@ -4,7 +4,7 @@ use rustyline::error::ReadlineError;
 use crate::ast;
 use crate::runtime;
 use crate::parser;
-use crate::typecheck;
+use crate::types::check;
 use crate::resolver;
 
 use ast::Import;
@@ -125,7 +125,7 @@ fn repl_line_term(runtime: &mut Runtime, line: &str) {
     match parser::parse_term(None, &line) {
         Ok(term) => {
             let type_context = runtime.builtin_type_ctx.append(runtime.definition_type_ctx.clone());
-            match typecheck::infer_type(
+            match check::infer_type(
                     &term,
                     type_context,
                     &runtime.inductive_typedefs,

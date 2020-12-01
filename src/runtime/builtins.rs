@@ -7,7 +7,7 @@ use crate::ast::Tag;
 use crate::runtime::Runtime;
 use crate::types::Type;
 use crate::types::TypeNode;
-use crate::typecontext::TypeContext;
+use crate::types::context::TypeContext;
 
 #[derive(Debug, Clone)]
 pub enum Flavor {
@@ -153,7 +153,6 @@ pub fn builtin_inductive_typedefs() -> Vec<TypeDef> {
 
     typedefs
 }
-
 
 pub fn builtin_primdefs() -> Vec<PrimDef> {
     let println_primdef = PrimDef::new(

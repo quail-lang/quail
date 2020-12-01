@@ -3,8 +3,8 @@ use std::io::Read;
 
 use crate::parser;
 use crate::ast;
-use crate::typecheck;
-use crate::typecontext::TypeContext;
+use crate::types::check;
+use crate::types::context::TypeContext;
 use crate::resolver::ImportResolver;
 
 use ast::TermNode;
@@ -97,7 +97,7 @@ impl Runtime {
             let Def(name, typ, body) = definition;
             if is_main || name != "main" {
                 let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(name, typ.clone());
-                typecheck::check_type(&body, type_context, &self.inductive_typedefs, typ.clone())?;
+                check::check_type(&body, type_context, &self.inductive_typedefs, typ.clone())?;
                 self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
                 let body_value = self.eval(&body, Context::empty());
@@ -111,7 +111,7 @@ impl Runtime {
     pub fn define(&mut self, definition: &Def) -> Result<(), RuntimeError> {
         let Def(name, typ, body) = definition;
         let type_context = self.builtin_type_ctx.append(self.definition_type_ctx.clone()).extend(&name, typ.clone());
-        typecheck::check_type(&body, type_context, &self.inductive_typedefs, typ.clone())?;
+        check::check_type(&body, type_context, &self.inductive_typedefs, typ.clone())?;
         self.definition_type_ctx = self.definition_type_ctx.extend(&name.to_string(), typ.clone());
 
         let body_value = self.eval(&body, Context::empty());
