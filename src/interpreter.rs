@@ -5,6 +5,7 @@ use crate::ast;
 use crate::runtime;
 use crate::parser;
 use crate::typecheck;
+use crate::resolver;
 
 use ast::Import;
 use ast::Def;
@@ -92,7 +93,7 @@ fn repl_line(runtime: &mut Runtime, line: &str) {
 }
 
 fn repl_line_import(runtime: &mut Runtime, line: &str) {
-    let mut import_resolver = runtime::FileImportResolver::new("examples");
+    let mut import_resolver = resolver::FileImportResolver::new("examples");
 
     match parser::parse_import(None, line) {
         Ok(Import(module_name)) => {

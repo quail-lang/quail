@@ -1,5 +1,5 @@
-use quail::runtime;
-use quail::runtime::ImportResolver;
+use quail::resolver;
+use quail::resolver::ImportResolver;
 use quail::tokenizer::*;
 
 use structopt::StructOpt;
@@ -11,18 +11,18 @@ struct Opt {
         filename: String,
 }
 
-fn main() -> Result<(), runtime::RuntimeError> {
+fn main() {
     let opt = Opt::from_args();
 
-    let mut import_resolver = runtime::ChainedImportResolver::new(
-        Box::new(runtime::FilePathImportResolver),
-        Box::new(runtime::FileImportResolver::new("examples")),
+    let mut import_resolver = resolver::ChainedImportResolver::new(
+        Box::new(resolver::FilePathImportResolver),
+        Box::new(resolver::FileImportResolver::new("examples")),
     );
 
     let mut module_text = String::new();
-    import_resolver.resolve(&opt.filename)?.reader.read_to_string(&mut module_text)?;
+    import_resolver.resolve(&opt.filename).unwrap().reader.read_to_string(&mut module_text).unwrap();
 
-    let tokss = tokenize_lines(None, &module_text)?;
+    let tokss = tokenize_lines(None, &module_text).unwrap();
     let module_text_lines: Vec<String> = module_text.lines().map(|l| l.to_owned()).collect();
     assert_eq!(tokss.len(), module_text_lines.len());
 
@@ -35,6 +35,5 @@ fn main() -> Result<(), runtime::RuntimeError> {
         println!();
         println!();
     }
-
-    Ok(())
 }
+

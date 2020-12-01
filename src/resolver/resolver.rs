@@ -1,9 +1,8 @@
 use std::path::{Path, PathBuf};
-use super::runtime::RuntimeError;
 use std::io;
 
 pub trait ImportResolver {
-    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, RuntimeError>;
+    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, io::Error>;
 }
 
 pub struct ResolvedImport {
@@ -20,8 +19,14 @@ impl FileImportResolver {
     }
 }
 
+impl io::Read for ResolvedImport {
+    fn read(&mut self, buf: &mut[u8]) -> io::Result<usize> {
+        self.reader.read(buf)
+    }
+}
+
 impl ImportResolver for FileImportResolver {
-    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, RuntimeError> {
+    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, io::Error> {
         let FileImportResolver(base_dir) = self;
         let filename = format!("{}.ql", import_name);
         let filepath = base_dir.join(&filename).to_owned();
@@ -37,7 +42,7 @@ impl ImportResolver for FileImportResolver {
 pub struct FilePathImportResolver;
 
 impl ImportResolver for FilePathImportResolver {
-    fn resolve(&mut self, filepath: &str) -> Result<ResolvedImport, RuntimeError> {
+    fn resolve(&mut self, filepath: &str) -> Result<ResolvedImport, io::Error> {
         let module_text = std::fs::read_to_string(&filepath)?;
 
         Ok(ResolvedImport {
@@ -56,7 +61,7 @@ impl ChainedImportResolver {
 }
 
 impl ImportResolver for ChainedImportResolver {
-    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, RuntimeError> {
+    fn resolve(&mut self, import_name: &str) -> Result<ResolvedImport, io::Error> {
         let ChainedImportResolver(ira, irb) = self;
         if let Ok(ri) = ira.resolve(import_name) {
             Ok(ri)

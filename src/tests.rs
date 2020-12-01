@@ -2,7 +2,7 @@
 use std::fs;
 
 use crate::runtime::Runtime;
-use crate::runtime::FileImportResolver;
+use crate::resolver::FileImportResolver;
 
 #[test]
 fn run_examples() {

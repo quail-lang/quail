@@ -6,6 +6,7 @@ use crate::ast;
 use crate::builtins;
 use crate::typecheck;
 use crate::typecontext::TypeContext;
+use crate::resolver::ImportResolver;
 
 use ast::TermNode;
 use ast::Def;
@@ -17,7 +18,6 @@ use builtins::TypeDef;
 
 use super::value::Value;
 use super::context::Context;
-use super::import::ImportResolver;
 
 ///
 /// Runtime is the global store for all of the information loaded into the program.
@@ -83,7 +83,7 @@ impl Runtime {
         let mut module_text = String::new();
 
         let mut resolved_import = resolver.resolve(import_name)?;
-        resolved_import.reader.read_to_string(&mut module_text)?;
+        resolved_import.read_to_string(&mut module_text)?;
         let source = Some(resolved_import.source);
 
         let module = parser::parse_module(source, &module_text)?;
