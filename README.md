@@ -1,4 +1,6 @@
 [![CircleCI](https://circleci.com/gh/quail-lang/quail.svg?style=svg)](https://circleci.com/gh/quail-lang/quail)
+[![Docs Status](https://docs.rs/quail/badge.svg)](https://docs.rs/quail)
+[![Crates.io](https://img.shields.io/crates/v/quail.svg)](https://crates.io/crates/quail)
 
 * [Introduction](#introduction)
 * [Getting Started](#getting-started)
