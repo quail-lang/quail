@@ -35,7 +35,6 @@ macro_rules! consume_expected_token {
             None => return Err(format!("Expected {:?} but found end of input.", expected_token)),
         }
     }
-
 }
 
 impl Parser {

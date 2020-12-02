@@ -224,8 +224,7 @@ impl Tokenizer {
             Some(head_char) => {
                 if let Some(tok) = self.double_character_token() {
                     Ok(Some(tok))
-                }
-                else if let Some(tok) = self.single_character_token() {
+                } else if let Some(tok) = self.single_character_token() {
                     Ok(Some(tok))
                 } else if head_char.is_ascii_alphabetic() {
                     let token = self.tokenize_identifier()?;
